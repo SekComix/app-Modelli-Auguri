@@ -1,0 +1,7 @@
+{
+  "name": "The Daily Creator",
+  "description": "A creative tool to design a classic newspaper double-page spread (Front and Back). Users can write articles, upload photos, or use Gemini AI to generate content and images.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
