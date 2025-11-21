@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArticleType, NewspaperData, ContentBlock, BlockType, ThemeId, ExtraSpread, ArticleData, EventType, FormatType, WidgetData, WidgetType } from './types';
 import { EditableText } from './components/EditableText';
@@ -1096,12 +1095,12 @@ const App: React.FC = () => {
   if (showWelcomeScreen && !localStorage.getItem('newspaper_data')) {
     return (
       <>
-        <input type="file" accept=".json" className="hidden" onChange={handleImportState} />
+        <input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={handleImportState} />
         <WelcomeScreen 
           hasSavedData={false} 
           onContinue={() => setShowWelcomeScreen(false)} 
           onNew={() => { handleConfirmReset(); setShowWelcomeScreen(false); }} 
-          onLoad={() => { (document.querySelector('input[type="file"]') as HTMLInputElement)?.click(); }}
+          onLoad={() => { (document.getElementById('hidden-file-input') as HTMLInputElement)?.click(); }}
         />
       </>
     );
@@ -1110,12 +1109,12 @@ const App: React.FC = () => {
   if (showWelcomeScreen && localStorage.getItem('newspaper_data')) {
       return (
         <>
-        <input type="file" accept=".json" className="hidden" onChange={handleImportState} />
+        <input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={handleImportState} />
         <WelcomeScreen 
           hasSavedData={true} 
           onContinue={() => setShowWelcomeScreen(false)} 
           onNew={() => { handleConfirmReset(); setShowWelcomeScreen(false); }} 
-          onLoad={() => { (document.querySelector('input[type="file"]') as HTMLInputElement)?.click(); }}
+          onLoad={() => { (document.getElementById('hidden-file-input') as HTMLInputElement)?.click(); }}
         />
         </>
       );
