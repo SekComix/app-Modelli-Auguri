@@ -28,8 +28,11 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+      
+      # QUESTA È LA PARTE CORRETTA CHE RISOLVE L'ERRORE
       - name: Install dependencies
         run: npm install
+
       - name: Build
         run: npm run build
       - name: Setup Pages
