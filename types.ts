@@ -1,3 +1,4 @@
+
 export enum ArticleType {
   LEAD = 'LEAD',
   SECONDARY = 'SECONDARY',
@@ -28,6 +29,7 @@ export interface ContentBlock {
   // New layout properties
   cols?: 1 | 2 | 3; // Number of text columns
   style?: 'standard' | 'box' | 'quote'; // Visual style
+  height?: number; // Custom height in pixels for images
 }
 
 export interface ExtraSpread {
@@ -68,6 +70,28 @@ export interface EventConfig {
   wishesFrom?: string;
 }
 
+// --- NEW WIDGET SYSTEM TYPES (TASK 1 + TASK 2 QR) ---
+export type WidgetType = 'mascot' | 'bubble' | 'sticker' | 'text' | 'qrcode';
+
+export interface WidgetData {
+  id: string;
+  type: WidgetType;
+  content: string; // SVG content, Image URL, Text, or QR Link
+  text?: string; // Specific text for bubbles/text widgets
+  style: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation: number;
+    zIndex: number;
+    fontSize?: number;
+    color?: string;
+    fontFamily?: string;
+    flipX?: boolean;
+  };
+}
+
 export interface NewspaperData {
   themeId: ThemeId;
   eventType: EventType;
@@ -88,4 +112,6 @@ export interface NewspaperData {
   customBgColor?: string; // Only for digital theme
   // Event Config
   eventConfig: EventConfig;
+  // Widgets Layer (Task 1)
+  widgets: WidgetData[];
 }
