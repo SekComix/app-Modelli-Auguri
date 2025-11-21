@@ -1,12 +1,26 @@
-
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// Helper to get the client safely
+// Helper to get the client safely by checking Env or LocalStorage
 const getAiClient = () => {
-  if (!process.env.API_KEY) {
-    throw new Error("API Key is missing");
+  // 1. Try Environment Variable (Local Dev)
+  if (process.env.API_KEY) {
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  // 2. Try Local Storage (Deployed App)
+  const localKey = localStorage.getItem('GEMINI_API_KEY');
+  if (localKey) {
+    return new GoogleGenAI({ apiKey: localKey });
+  }
+
+  // 3. Ask User
+  const userKey = prompt("🔑 ATTENZIONE: Per usare l'AI (Testi e Foto) serve una Chiave API di Google.\n\nSe non ce l'hai, cercala su Google 'Get Gemini API Key'.\n\nIncolla qui la tua Chiave:");
+  if (userKey && userKey.trim().length > 10) {
+    localStorage.setItem('GEMINI_API_KEY', userKey.trim());
+    return new GoogleGenAI({ apiKey: userKey.trim() });
+  }
+
+  throw new Error("API Key mancante. Impossibile usare l'AI.");
 };
 
 const handleGeminiError = (error: any) => {
@@ -16,13 +30,15 @@ const handleGeminiError = (error: any) => {
     if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
         throw new Error("⚠️ Quota AI esaurita (Troppe richieste). Attendi un minuto e riprova.");
     }
-    if (msg.includes('API Key')) {
-        throw new Error("⚠️ Chiave API mancante o non valida.");
+    if (msg.includes('API Key') || msg.includes('403')) {
+        // If invalid key, clear it so user can enter again
+        localStorage.removeItem('GEMINI_API_KEY');
+        throw new Error("⚠️ Chiave API non valida o scaduta. Ricarica la pagina per inserirne una nuova.");
     }
     if (msg.includes('SAFETY')) {
-        throw new Error("⚠️ Contenuto bloccato dai filtri di sicurezza.");
+        throw new Error("⚠️ Contenuto bloccato dai filtri di sicurezza (Safety).");
     }
-    throw new Error("Errore di connessione AI. Riprova.");
+    return `Errore AI: ${msg}`; 
 };
 
 export const generateArticleContent = async (topic: string, type: 'headline' | 'body' | 'full' | 'summary', language: string = 'Italiano', tone: string = 'journalistic'): Promise<string> => {
@@ -37,7 +53,7 @@ export const generateArticleContent = async (topic: string, type: 'headline' | '
         case 'archaic': styleInstruction = "Usa un linguaggio arcaico, aulico e vintage tipico del 1900 o rinascimentale."; break;
         case 'sensational': styleInstruction = "Usa un tono sensazionalistico, esagerato, da 'Breaking News' scandalistica."; break;
         case 'poetic': styleInstruction = "Usa un tono poetico, evocativo, quasi in rima o molto dolce."; break;
-        default: styleInstruction = "Usa un tono giornalistico classico, formale e oggettivo."; break; // journalistic
+        default: styleInstruction = "Usa un tono giornalistico classico, formale e oggettivo."; break; 
     }
 
     let prompt = "";
@@ -68,7 +84,7 @@ export const generateArticleContent = async (topic: string, type: 'headline' | '
 
     return response.text || "Impossibile generare il contenuto.";
   } catch (error) {
-    return handleGeminiError(error);
+    return typeof error === 'string' ? error : handleGeminiError(error);
   }
 };
 
@@ -96,7 +112,6 @@ export const generateHistoricalContext = async (year: number, language: string =
 
   } catch (error) {
       console.error("Error fetching history", error);
-      // Don't throw here to allow UI to render fallback
       return {
           summary: `Correva l'anno ${year}. Un anno indimenticabile.`,
           facts: `- Dati storici non disponibili al momento.`
@@ -114,20 +129,15 @@ export const generateTextFromMedia = async (mediaSrc: string, language: string =
         const mime = mediaSrc.split(';')[0].split(':')[1];
         base64Data = mediaSrc.split(',')[1];
         mimeType = mime;
-    } else if (mediaSrc.endsWith('.mp4')) {
-         mimeType = "video/mp4";
-         const resp = await fetch(mediaSrc);
-         const blob = await resp.blob();
-         const buffer = await blob.arrayBuffer();
-         base64Data = btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
     } else {
         const resp = await fetch(mediaSrc);
         const blob = await resp.blob();
         const buffer = await blob.arrayBuffer();
         base64Data = btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+        mimeType = blob.type;
     }
 
-    const prompt = `Agisci come un giornalista esperto. Analizza questo contenuto multimediale (immagine o video).
+    const prompt = `Agisci come un giornalista esperto. Analizza questo contenuto multimediale.
     Compito 1: Scrivi un TITOLO di giornale sensazionalistico o descrittivo basato su ciò che vedi.
     Compito 2: Scrivi un breve ARTICOLO (max 60 parole) che descriva la scena o la notizia.
     Lingua: ${language}.
@@ -155,18 +165,16 @@ export const generateTextFromMedia = async (mediaSrc: string, language: string =
     };
 
   } catch (error) {
-    return handleGeminiError(error);
+    const msg = handleGeminiError(error);
+    return { headline: "ERRORE AI", body: msg };
   }
 };
 
-// Re-export as legacy name for compatibility if needed
 export const generateTextFromImage = generateTextFromMedia;
-
-// --- TTS LOGIC ---
 
 export const generateSpeech = async (text: string): Promise<string | null> => {
   try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = getAiClient();
       const response = await ai.models.generateContent({
           model: "gemini-2.5-flash-preview-tts",
           contents: [{ parts: [{ text: text }] }],
@@ -180,17 +188,13 @@ export const generateSpeech = async (text: string): Promise<string | null> => {
           },
       });
 
-      // Return the RAW Base64 string
       return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
   } catch (e) {
-      console.error("TTS Generation failed", e);
+      handleGeminiError(e);
       return null;
   }
 };
 
-/**
- * Decodes and plays raw PCM 16-bit 24kHz audio from Gemini
- */
 export const playRawAudio = async (base64Audio: string, audioContext: AudioContext): Promise<AudioBufferSourceNode> => {
     const binaryString = atob(base64Audio);
     const len = binaryString.length;
@@ -199,17 +203,13 @@ export const playRawAudio = async (base64Audio: string, audioContext: AudioConte
         bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Convert Int16 (PCM) to Float32 (AudioBuffer standard)
-    // Data is little-endian 16-bit integers
     const int16Data = new Int16Array(bytes.buffer);
     const float32Data = new Float32Array(int16Data.length);
     
     for (let i = 0; i < int16Data.length; i++) {
-        // Normalize to [-1.0, 1.0]
         float32Data[i] = int16Data[i] / 32768.0;
     }
 
-    // Gemini TTS output is typically 24000Hz Mono
     const buffer = audioContext.createBuffer(1, float32Data.length, 24000);
     buffer.getChannelData(0).set(float32Data);
 
@@ -217,7 +217,6 @@ export const playRawAudio = async (base64Audio: string, audioContext: AudioConte
     source.buffer = buffer;
     source.connect(audioContext.destination);
     source.start(0);
-    
     return source;
 }
 
@@ -237,72 +236,50 @@ export const generateNewspaperImage = async (prompt: string, referenceImage?: st
                         { text: prompt || "Migliora questa immagine per un giornale" }
                     ]
                 },
-                config: {
-                    responseModalities: [Modality.IMAGE]
-                }
+                config: { responseModalities: [Modality.IMAGE] }
             });
 
             const parts = response.candidates?.[0]?.content?.parts;
             if (parts) {
                 for (const part of parts) {
-                    if (part.inlineData) {
-                        return `data:image/jpeg;base64,${part.inlineData.data}`;
-                    }
+                    if (part.inlineData) return `data:image/jpeg;base64,${part.inlineData.data}`;
                 }
             }
-            throw new Error("No image generated from reference.");
+            throw new Error("No image generated.");
         } catch (e) {
-             return handleGeminiError(e);
+             throw new Error(handleGeminiError(e));
         }
 
     } else {
         try {
             const response = await ai.models.generateImages({
                 model: 'imagen-4.0-generate-001',
-                prompt: `Una fotografia realistica per un giornale vintage ad alta qualità. Soggetto: ${prompt}. Stile stampa in bianco e nero o leggermente desaturato.`,
-                config: {
-                numberOfImages: 1,
-                aspectRatio: '4:3',
-                outputMimeType: 'image/jpeg'
-                }
+                prompt: `Vintage newspaper photo, black and white, realistic. Subject: ${prompt}`,
+                config: { numberOfImages: 1, aspectRatio: '4:3', outputMimeType: 'image/jpeg' }
             });
             
             const base64ImageBytes = response.generatedImages?.[0]?.image?.imageBytes;
-            if (base64ImageBytes) {
-                return `data:image/jpeg;base64,${base64ImageBytes}`;
-            }
+            if (base64ImageBytes) return `data:image/jpeg;base64,${base64ImageBytes}`;
             throw new Error("No image bytes returned");
         } catch (e) {
-             return handleGeminiError(e);
+             throw new Error(handleGeminiError(e));
         }
     }
 
   } catch (error) {
-    return handleGeminiError(error);
+    throw new Error(typeof error === 'string' ? error : "Errore Generazione Immagine");
   }
 };
 
 export const generateNewspaperVideo = async (prompt: string): Promise<string> => {
-  if (window.aistudio && window.aistudio.hasSelectedApiKey) {
-    const hasKey = await window.aistudio.hasSelectedApiKey();
-    if (!hasKey) {
-       if (window.aistudio.openSelectKey) {
-         await window.aistudio.openSelectKey();
-       }
-    }
-  }
-
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
+    const ai = getAiClient();
+    // We don't use window.aistudio here because we are in a standalone app context usually
+    
     let operation = await ai.models.generateVideos({
       model: 'veo-3.1-fast-generate-preview',
-      prompt: `A vintage cinematic shot, black and white newspaper style, moving picture of: ${prompt}`,
-      config: {
-        numberOfVideos: 1,
-        resolution: '720p',
-        aspectRatio: '16:9'
-      }
+      prompt: `Vintage cinematic, black and white newspaper style: ${prompt}`,
+      config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
     });
 
     while (!operation.done) {
@@ -311,16 +288,14 @@ export const generateNewspaperVideo = async (prompt: string): Promise<string> =>
     }
 
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    
     if (downloadLink) {
-      const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
+      // On client side we need the key to fetch the video if the link requires it
+      const apiKey = process.env.API_KEY || localStorage.getItem('GEMINI_API_KEY');
+      return `${downloadLink}&key=${apiKey}`;
     }
-
-    throw new Error("Video generation completed but no URI found.");
+    throw new Error("Video generation failed.");
 
   } catch (error) {
-     return handleGeminiError(error);
+     throw new Error(handleGeminiError(error));
   }
 };
