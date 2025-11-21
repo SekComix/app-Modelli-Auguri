@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArticleType, NewspaperData, ContentBlock, BlockType, ThemeId, ExtraSpread, ArticleData, EventType, FormatType } from './types';
+import { ArticleType, NewspaperData, ContentBlock, BlockType, ThemeId, ExtraSpread, ArticleData, EventType, FormatType, WidgetData, WidgetType } from './types';
 import { EditableText } from './components/EditableText';
 import { ImageSpot } from './components/ImageSpot';
-import { StrilloneWidget } from './components/StrilloneWidget';
+import { WidgetLibrary, WidgetLayer } from './components/StrilloneWidget';
 import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, Palette, PlusCircle, MinusCircle, Cake, Check, Loader2, Mail, X, Heart, GraduationCap, Baby, Crown, Sparkles, LayoutTemplate, Snowflake, Sun, BookOpen, Wand2, Megaphone, Upload, Save, FolderOpen, HelpCircle, Download, Github, FilePlus, FileBox, AlertTriangle, Eye, ArrowLeft, FileDown } from 'lucide-react';
 import { generateHistoricalContext } from './services/gemini';
+import { WelcomeScreen } from './components/WelcomeScreen';
 
 // --- THEME CONFIGURATION ---
 interface ThemeConfig {
@@ -246,7 +247,8 @@ const INITIAL_DATA: NewspaperData = {
       date: '1965-11-18',
       age: 60,
       wishesFrom: "Barbara e Secondo"
-  }
+  },
+  widgets: [] // TASK 1: New Widget Layer
 };
 
 // --- EXTRACTED COMPONENTS ---
@@ -439,11 +441,26 @@ const RenderBlocks: React.FC<RenderBlocksProps> = ({ blocks, onUpdate, onRemove,
 // --- MAIN APP ---
 
 const App: React.FC = () => {
-  const [data, setData] = useState<NewspaperData>(INITIAL_DATA);
-  const [appConfig, setAppConfig] = useState({ title: 'The Daily Creator', logo: '' });
+  // STATE
+  const [data, setData] = useState<NewspaperData>(() => {
+      // Load from localStorage on init
+      const saved = localStorage.getItem('newspaper_data');
+      return saved ? JSON.parse(saved) : INITIAL_DATA;
+  });
+  
+  const [appConfig, setAppConfig] = useState(() => {
+      const saved = localStorage.getItem('app_config');
+      return saved ? JSON.parse(saved) : { title: 'The Daily Creator', logo: '' };
+  });
+
   const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
-  const [showStrillone, setShowStrillone] = useState(false);
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
+
+  // TASK 1: STATE
+  const [showWidgetLibrary, setShowWidgetLibrary] = useState(false);
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
+
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   
@@ -452,10 +469,53 @@ const App: React.FC = () => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [backupFilename, setBackupFilename] = useState('');
 
+  // AUTO-SAVE EFFECT
+  useEffect(() => {
+      localStorage.setItem('newspaper_data', JSON.stringify(data));
+      localStorage.setItem('app_config', JSON.stringify(appConfig));
+  }, [data, appConfig]);
+
   const currentTheme = THEMES[data.themeId];
   const isDigital = data.themeId === 'digital';
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD;
+
+  // --- WIDGET HANDLERS (TASK 1) ---
+  const handleAddWidget = (type: WidgetType, content: string, subType?: string) => {
+      const newWidget: WidgetData = {
+          id: `widget-${Date.now()}`,
+          type,
+          content,
+          text: type === 'bubble' ? 'Clicca per modificare...' : type === 'text' ? 'IL TUO TESTO' : undefined,
+          style: {
+              x: window.innerWidth / 2 - 100, // Center loosely
+              y: window.scrollY + 300,
+              width: 200,
+              height: 200,
+              rotation: 0,
+              zIndex: 50,
+              fontSize: 24,
+              color: '#000000',
+              fontFamily: 'Chomsky',
+              flipX: false
+          }
+      };
+      // Special sizing for stickers
+      if (type === 'sticker' && !subType) {
+          newWidget.style.width = 100;
+          newWidget.style.height = 100;
+      }
+      setData(prev => ({ ...prev, widgets: [...(prev.widgets || []), newWidget] }));
+      setSelectedWidgetId(newWidget.id);
+      setShowWidgetLibrary(false);
+  };
+
+  const setWidgets = (action: React.SetStateAction<WidgetData[]>) => {
+      setData(prev => {
+          const newWidgets = typeof action === 'function' ? action(prev.widgets || []) : action;
+          return { ...prev, widgets: newWidgets };
+      });
+  };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -495,6 +555,7 @@ const App: React.FC = () => {
               const importedData = JSON.parse(event.target?.result as string);
               if (importedData && importedData.themeId) {
                   setData(importedData);
+                  setShowWelcomeScreen(false); // Close welcome if loaded from there
                   alert("Progetto caricato con successo!");
               } else {
                   alert("File di salvataggio non valido.");
@@ -509,8 +570,10 @@ const App: React.FC = () => {
   const handleConfirmReset = () => {
       setData(INITIAL_DATA);
       setAppConfig({ title: 'The Daily Creator', logo: '' });
-      setShowStrillone(false);
+      localStorage.removeItem('newspaper_data'); // Clear storage
+      setShowWidgetLibrary(false);
       setShowResetDialog(false);
+      setShowWelcomeScreen(false);
   };
 
 
@@ -1030,6 +1093,34 @@ const App: React.FC = () => {
       </div>
   );
 
+  if (showWelcomeScreen && !localStorage.getItem('newspaper_data')) {
+    return (
+      <>
+        <input type="file" accept=".json" className="hidden" onChange={handleImportState} />
+        <WelcomeScreen 
+          hasSavedData={false} 
+          onContinue={() => setShowWelcomeScreen(false)} 
+          onNew={() => { handleConfirmReset(); setShowWelcomeScreen(false); }} 
+          onLoad={() => { (document.querySelector('input[type="file"]') as HTMLInputElement)?.click(); }}
+        />
+      </>
+    );
+  }
+
+  if (showWelcomeScreen && localStorage.getItem('newspaper_data')) {
+      return (
+        <>
+        <input type="file" accept=".json" className="hidden" onChange={handleImportState} />
+        <WelcomeScreen 
+          hasSavedData={true} 
+          onContinue={() => setShowWelcomeScreen(false)} 
+          onNew={() => { handleConfirmReset(); setShowWelcomeScreen(false); }} 
+          onLoad={() => { (document.querySelector('input[type="file"]') as HTMLInputElement)?.click(); }}
+        />
+        </>
+      );
+  }
+
   if (isPreviewMode) {
       return <PrintPreviewOverlay />;
   }
@@ -1137,8 +1228,8 @@ const App: React.FC = () => {
                   <Eye size={18} /> <span>ANTEPRIMA STAMPA</span>
                </button>
 
-              <button onClick={() => setShowStrillone(!showStrillone)} className={`p-2 rounded-lg font-bold text-xs flex items-center gap-1 shadow-sm transition-colors border ${showStrillone ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`} title="Attiva/Disattiva Strillone">
-                  <Megaphone size={16} /> <span className="hidden lg:inline">Strillone</span>
+              <button onClick={() => setShowWidgetLibrary(!showWidgetLibrary)} className={`p-2 rounded-lg font-bold text-xs flex items-center gap-1 shadow-sm transition-colors border ${showWidgetLibrary ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`} title="Apri Strillone & Widget">
+                  <Megaphone size={16} /> <span className="hidden lg:inline">Strillone & Widget</span>
               </button>
               <button onClick={handleEmailClick} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-md"><Mail size={16} /> <span className="hidden lg:inline">Invia PDF</span></button>
           </div>
@@ -1282,9 +1373,25 @@ const App: React.FC = () => {
               </>
             )
         )}
+        
+        {/* TASK 1: GLOBAL WIDGET LAYER (Integrated here) */}
+        <WidgetLayer 
+           widgets={data.widgets || []} 
+           setWidgets={setWidgets} 
+           selectedId={selectedWidgetId} 
+           setSelectedId={setSelectedWidgetId} 
+        />
       </div>
 
-      <StrilloneWidget isVisible={showStrillone} onClose={() => setShowStrillone(false)} />
+      {/* TASK 1: WIDGET LIBRARY (Replaces StrilloneWidget) */}
+      <WidgetLibrary 
+          isOpen={showWidgetLibrary} 
+          onClose={() => setShowWidgetLibrary(false)} 
+          onAddWidget={handleAddWidget} 
+      />
+      
+      {/* Floating Action Button for Widgets */}
+      <button onClick={() => setShowWidgetLibrary(!showWidgetLibrary)} className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:bg-blue-700 transition-transform hover:scale-110 z-[9999] border-4 border-white print:hidden" title="Apri Strillone & Widget"><Megaphone size={24} /></button>
 
       {/* SAVE BACKUP DIALOG */}
       {showSaveDialog && (
