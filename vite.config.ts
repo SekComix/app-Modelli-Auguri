@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      // QUESTA È LA RIGA FONDAMENTALE PER GITHUB PAGES
+      base: "/app-Modelli-Auguri/", 
+      
       server: {
         port: 3000,
         host: '0.0.0.0',
