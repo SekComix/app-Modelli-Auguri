@@ -986,17 +986,14 @@ const App: React.FC = () => {
                   
                   {/* DISTINCT PRINT ACTIONS */}
                   <button 
-                    onClick={() => {
-                        alert("Per salvare come PDF: \n1. Clicca OK\n2. Nella finestra che si apre, cambia la 'Destinazione' in 'Salva come PDF'");
-                        triggerPrint();
-                    }} 
+                    onClick={() => window.print()}
                     className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold uppercase shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
                   >
                       <FileDown size={20}/> CREA E SALVA PDF
                   </button>
 
                   <button 
-                    onClick={triggerPrint} 
+                    onClick={() => window.print()} 
                     className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-full font-bold uppercase shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
                   >
                       <Printer size={20}/> STAMPA SU CARTA
