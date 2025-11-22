@@ -5,10 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      // FIX CRITICO: Uso "./" per percorsi relativi. 
-      // Questo permette al sito di funzionare in qualsiasi sottocartella di GitHub senza errori 404.
-      base: "./", 
-      
+      base: "./", // Assicura che i file vengano caricati correttamente su GitHub Pages
       server: {
         port: 3000,
         host: '0.0.0.0',
