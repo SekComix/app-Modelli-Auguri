@@ -5,7 +5,14 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      base: "./", // Assicura che i file vengano caricati correttamente su GitHub Pages
+      // CRITICAL FIX: Ensure relative paths for assets in GitHub Pages
+      base: './', 
+      
+      build: {
+        outDir: 'dist',
+        emptyOutDir: true,
+      },
+      
       server: {
         port: 3000,
         host: '0.0.0.0',
