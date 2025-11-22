@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ArticleType, NewspaperData, ContentBlock, BlockType, ThemeId, ExtraSpread, ArticleData, EventType, FormatType, WidgetData, WidgetType } from './types';
 import { EditableText } from './components/EditableText';
@@ -252,7 +253,7 @@ const INITIAL_DATA: NewspaperData = {
       {
           id: 'default-strillone',
           type: 'mascot',
-          content: 'strillone_antonio.png',
+          content: './strillone_antonio.png',
           style: {
               x: 20,
               y: 800, // Bottom left area
