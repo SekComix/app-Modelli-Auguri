@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArticleType, NewspaperData, ContentBlock, BlockType, ThemeId, ExtraSpread, ArticleData, EventType, FormatType, WidgetData, WidgetType } from './types';
 import { EditableText } from './components/EditableText';
@@ -249,7 +248,7 @@ const INITIAL_DATA: NewspaperData = {
       wishesFrom: "Barbara e Secondo"
   },
   widgets: [
-      // TASK 1: Default Widget (Strillone) to show user it works immediately
+      // TASK 1: Default Widget (Strillone) - Usiamo ./ per compatibilità GitHub
       {
           id: 'default-strillone',
           type: 'mascot',
