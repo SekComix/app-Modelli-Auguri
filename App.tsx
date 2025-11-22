@@ -248,7 +248,7 @@ const INITIAL_DATA: NewspaperData = {
       wishesFrom: "Barbara e Secondo"
   },
   widgets: [
-      // TASK 1: Default Widget (Strillone) - Usiamo ./ per compatibilità GitHub
+      // TASK 1: Default Widget (Strillone) - Uses relative path for GitHub Pages
       {
           id: 'default-strillone',
           type: 'mascot',
@@ -1290,42 +1290,47 @@ const App: React.FC = () => {
               <div className="flex flex-col">
                   <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">
                       {data.eventType === EventType.WEDDING ? 'Nome Sposo' : (data.eventType === EventType.GRADUATION ? 'Laureando/a' : 'Nome / Famiglia')}
+                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} />
                   </label>
-                  <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} />
               </div>
 
               {data.eventType === EventType.WEDDING && (
                   <div className="flex flex-col">
-                      <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Sposa</label>
-                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} />
+                      <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Sposa
+                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} />
+                      </label>
                   </div>
               )}
 
               {(data.eventType === EventType.BIRTHDAY || data.eventType === EventType.EIGHTEEN || data.eventType === EventType.GRADUATION || data.eventType === EventType.BAPTISM) && (
                    <div className="flex flex-col">
-                      <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere</label>
-                      <select className="border rounded px-3 py-2 text-sm bg-stone-50" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}>
+                      <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere
+                      <select className="border rounded px-3 py-2 text-sm bg-stone-50 mt-1" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}>
                           <option value="M">Maschio</option>
                           <option value="F">Femmina</option>
                       </select>
+                      </label>
                    </div>
               )}
 
               <div className="flex flex-col">
-                  <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data Evento / Nascita</label>
-                  <input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} />
+                  <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data Evento / Nascita
+                  <input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} />
+                  </label>
               </div>
 
               {data.eventType === EventType.WEDDING && (
                   <div className="flex flex-col">
-                      <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Luogo</label>
-                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50" value={data.eventConfig.location || ''} onChange={(e) => updateEventConfig('location', e.target.value)} placeholder="Es. Roma"/>
+                      <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Luogo
+                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 mt-1" value={data.eventConfig.location || ''} onChange={(e) => updateEventConfig('location', e.target.value)} placeholder="Es. Roma"/>
+                      </label>
                   </div>
               )}
 
                <div className="flex flex-col">
-                  <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da</label>
-                  <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/>
+                  <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da
+                  <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/>
+                  </label>
               </div>
               
               <button 
@@ -1440,7 +1445,7 @@ const App: React.FC = () => {
               Dai un nome al tuo file di salvataggio. Potrai ricaricarlo in futuro per recuperare tutti i contenuti.
             </p>
             
-            <label className="text-xs font-bold uppercase text-stone-500 mb-1 block">Nome File</label>
+            <label className="text-xs font-bold uppercase text-stone-500 mb-1 block">Nome File
             <input 
               type="text" 
               value={backupFilename} 
@@ -1449,6 +1454,7 @@ const App: React.FC = () => {
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleConfirmSave()}
             />
+            </label>
             
             <div className="flex justify-end gap-3">
               <button onClick={() => setShowSaveDialog(false)} className="px-4 py-2 text-stone-500 font-bold text-xs uppercase hover:bg-stone-100 rounded">Annulla</button>
