@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Upload, X, Trash2, Move, Edit3, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, Search, GripHorizontal, QrCode, Mic, Link as LinkIcon, ExternalLink } from 'lucide-react';
@@ -7,8 +6,8 @@ import { WidgetData, WidgetType } from '../types';
 // --- PRESET ASSETS ---
 const ASSETS = {
     mascots: [
-        // Ecco dove ho aggiunto il tuo file! Assicurati che sia in /public/strillone_antonio.png
-        { id: 'custom_antonio', label: 'IL TUO STRILLONE', src: '/strillone_antonio.png' }, 
+        // FIX: Rimosso lo slash iniziale per compatibilità GitHub Pages
+        { id: 'custom_antonio', label: 'IL TUO STRILLONE', src: 'strillone_antonio.png' }, 
         { id: 'strillone', label: 'Strillone', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995655.png' },
         { id: 'gentleman', label: 'Gentleman', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995515.png' },
         { id: 'santa', label: 'Babbo Natale', src: 'https://cdn-icons-png.flaticon.com/512/744/744546.png' },
@@ -422,7 +421,8 @@ interface WidgetLayerProps {
 }
 
 export const WidgetLayer: React.FC<WidgetLayerProps> = ({ widgets, setWidgets, selectedId, setSelectedId }) => {
-    
+    const safeWidgets = widgets || []; // DEFENSIVE: Prevent crash if undefined
+
     const handleUpdate = (id: string, changes: Partial<WidgetData['style']> & { text?: string }) => {
         setWidgets(prev => prev.map(w => {
             if (w.id !== id) return w;
@@ -445,7 +445,7 @@ export const WidgetLayer: React.FC<WidgetLayerProps> = ({ widgets, setWidgets, s
              {/* Click on empty space to deselect */}
             <div className="absolute inset-0 pointer-events-auto" onMouseDown={(e) => { if(e.target === e.currentTarget) setSelectedId(null); }} onTouchStart={(e) => { if(e.target === e.currentTarget) setSelectedId(null); }} style={{ display: selectedId ? 'block' : 'none' }}/>
             
-            {widgets.map(w => (
+            {safeWidgets.map(w => (
                 <div key={w.id} className="pointer-events-auto">
                     <DraggableWidget 
                         widget={w}
