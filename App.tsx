@@ -460,7 +460,23 @@ const App: React.FC = () => {
   const [data, setData] = useState<NewspaperData>(() => {
       // Load from localStorage on init
       const saved = localStorage.getItem('newspaper_data');
-      return saved ? JSON.parse(saved) : INITIAL_DATA;
+      if (saved) {
+          try {
+              const parsed = JSON.parse(saved);
+              // INTELLIGENT MERGE:
+              // If the saved data is old and missing widgets, add default widgets from INITIAL_DATA
+              // This ensures the "Strillone" appears even for users with old saves.
+              return {
+                  ...INITIAL_DATA, // Start with defaults (includes widgets)
+                  ...parsed,       // Overwrite with saved data
+                  widgets: (parsed.widgets && parsed.widgets.length > 0) ? parsed.widgets : INITIAL_DATA.widgets
+              };
+          } catch (e) {
+              console.error("Failed to parse save", e);
+              return INITIAL_DATA;
+          }
+      }
+      return INITIAL_DATA;
   });
   
   const [appConfig, setAppConfig] = useState(() => {
@@ -569,7 +585,12 @@ const App: React.FC = () => {
           try {
               const importedData = JSON.parse(event.target?.result as string);
               if (importedData && importedData.themeId) {
-                  setData(importedData);
+                  // Ensure loaded data has widgets array if missing
+                  const finalData = {
+                      ...importedData,
+                      widgets: importedData.widgets || []
+                  };
+                  setData(finalData);
                   setShowWelcomeScreen(false); // Close welcome if loaded from there
                   alert("Progetto caricato con successo!");
               } else {
