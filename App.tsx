@@ -247,23 +247,7 @@ const INITIAL_DATA: NewspaperData = {
       age: 60,
       wishesFrom: "Barbara e Secondo"
   },
-  widgets: [
-      // TASK 1: Default Widget (Strillone) to show user it works immediately
-      {
-          id: 'default-strillone',
-          type: 'mascot',
-          content: 'strillone_antonio.png',
-          style: {
-              x: 20,
-              y: 800, // Bottom left area
-              width: 300,
-              height: 300,
-              rotation: 0,
-              zIndex: 50,
-              flipX: false
-          }
-      }
-  ]
+  widgets: [] // TASK 1: New Widget Layer
 };
 
 // --- EXTRACTED COMPONENTS ---
