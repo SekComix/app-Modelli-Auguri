@@ -5,8 +5,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      // QUESTA È LA RIGA FONDAMENTALE PER GITHUB PAGES
-      base: "/app-Modelli-Auguri/", 
+      // FIX CRITICO: Uso "./" per percorsi relativi. 
+      // Questo permette al sito di funzionare in qualsiasi sottocartella di GitHub senza errori 404.
+      base: "./", 
       
       server: {
         port: 3000,
@@ -19,7 +20,7 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve('.'),
         }
       }
     };
