@@ -248,7 +248,7 @@ const INITIAL_DATA: NewspaperData = {
       wishesFrom: "Barbara e Secondo"
   },
   widgets: [
-      // TASK 1: Default Widget (Strillone)
+      // TASK 1: Default Widget (Strillone) - Uses relative path for GitHub Pages
       {
           id: 'default-strillone',
           type: 'mascot',
@@ -481,7 +481,7 @@ const App: React.FC = () => {
   
   const [appConfig, setAppConfig] = useState(() => {
       const saved = localStorage.getItem('app_config');
-      return saved ? JSON.parse(saved) : { title: 'The Daily Creator', logo: '' }; // Default placeholder if needed
+      return saved ? JSON.parse(saved) : { title: 'The Daily Creator', logo: '' };
   });
 
   const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
@@ -1166,31 +1166,17 @@ const App: React.FC = () => {
       
       {/* TOOLBAR */}
       <nav className="max-w-[1600px] mx-auto bg-white rounded-xl shadow-lg p-3 mb-8 flex flex-wrap items-center justify-between gap-4 print:hidden relative z-50">
-        {/* LEFT: LOGO & TITLE (FIXED BRANDING) */}
+        {/* LEFT: LOGO & TITLE */}
         <div className="flex items-center gap-3 mr-4">
-          {/* LOGO (Placeholder or Uploaded) */}
-          <img 
-              src={appConfig.logo || "https://cdn-icons-png.flaticon.com/512/2537/2537855.png"} 
-              alt="Logo" 
-              className="h-12 w-12 object-contain" 
-          />
-          
-          {/* FIXED BRAND NAME */}
-          <div className="flex flex-col">
-             <span className="text-xl font-black text-stone-900 uppercase tracking-tighter leading-none font-oswald">
-                The Sek
-             </span>
-             <span className="text-sm font-bold text-stone-500 tracking-widest uppercase text-[10px] leading-none">
-                Creator & Designer
-             </span>
+          {appConfig.logo && <img src={appConfig.logo} alt="Logo" className="h-10 w-auto object-contain" />}
+          <div className="text-xl font-bold text-stone-800 tracking-tight">
+            <EditableText value={appConfig.title} onChange={(v) => setAppConfig(prev => ({ ...prev, title: v }))} aiEnabled={false} />
           </div>
-
-          <label className="cursor-pointer p-2 hover:bg-gray-100 rounded-full ml-2" title="Carica il tuo Logo">
+          <label className="cursor-pointer p-2 hover:bg-gray-100 rounded-full" title="Carica Logo">
               <Upload size={16} className="text-gray-500"/>
               <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload}/>
           </label>
-
-          <button onClick={() => setShowHelpDialog(true)} className="bg-stone-200 hover:bg-stone-300 p-2 rounded-full text-stone-700 ml-2" title="Guida ai Salvataggi"><HelpCircle size={18}/></button>
+          <button onClick={() => setShowHelpDialog(true)} className="bg-stone-200 hover:bg-stone-300 p-2 rounded-full text-stone-700" title="Guida ai Salvataggi"><HelpCircle size={18}/></button>
         </div>
         
         <div className="flex items-center gap-4 flex-wrap flex-1 justify-end">
@@ -1300,18 +1286,18 @@ const App: React.FC = () => {
                   Configurazione {data.eventType}
               </div>
               
-              {/* DYNAMIC FORM FIELDS (FIXED LABELS) */}
+              {/* DYNAMIC FORM FIELDS */}
               <div className="flex flex-col">
                   <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">
                       {data.eventType === EventType.WEDDING ? 'Nome Sposo' : (data.eventType === EventType.GRADUATION ? 'Laureando/a' : 'Nome / Famiglia')}
-                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} />
+                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} />
                   </label>
               </div>
 
               {data.eventType === EventType.WEDDING && (
                   <div className="flex flex-col">
                       <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Sposa
-                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} />
+                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} />
                       </label>
                   </div>
               )}
@@ -1319,7 +1305,7 @@ const App: React.FC = () => {
               {(data.eventType === EventType.BIRTHDAY || data.eventType === EventType.EIGHTEEN || data.eventType === EventType.GRADUATION || data.eventType === EventType.BAPTISM) && (
                    <div className="flex flex-col">
                       <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere
-                      <select className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}>
+                      <select className="border rounded px-3 py-2 text-sm bg-stone-50 mt-1" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}>
                           <option value="M">Maschio</option>
                           <option value="F">Femmina</option>
                       </select>
@@ -1329,21 +1315,21 @@ const App: React.FC = () => {
 
               <div className="flex flex-col">
                   <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data Evento / Nascita
-                  <input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} />
+                  <input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} />
                   </label>
               </div>
 
               {data.eventType === EventType.WEDDING && (
                   <div className="flex flex-col">
                       <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Luogo
-                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.location || ''} onChange={(e) => updateEventConfig('location', e.target.value)} placeholder="Es. Roma"/>
+                      <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 mt-1" value={data.eventConfig.location || ''} onChange={(e) => updateEventConfig('location', e.target.value)} placeholder="Es. Roma"/>
                       </label>
                   </div>
               )}
 
                <div className="flex flex-col">
                   <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da
-                  <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/>
+                  <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/>
                   </label>
               </div>
               
@@ -1378,7 +1364,8 @@ const App: React.FC = () => {
              </div>
         ) : isCard ? (
             <div className="flex flex-col lg:flex-row bg-[#f0f0f0] print:flex-row print:w-full">
-               {renderFrontPage('w-full lg:w-1/2 lg:border-r border-dashed border-stone-400')}{renderBackPage('w-full lg:w-1/2')}
+               {renderFrontPage('w-full lg:w-1/2 lg:border-r border-dashed border-stone-400')}
+               {renderBackPage('w-full lg:w-1/2')}
              </div>
         ) : (
             isDigital ? (
@@ -1463,7 +1450,7 @@ const App: React.FC = () => {
               type="text" 
               value={backupFilename} 
               onChange={(e) => setBackupFilename(e.target.value)} 
-              className="w-full bg-stone-50 border border-stone-300 p-3 rounded-lg mb-6 font-medium outline-none focus:ring-2 focus:ring-orange-400 block mt-1"
+              className="w-full bg-stone-50 border border-stone-300 p-3 rounded-lg mb-6 font-medium outline-none focus:ring-2 focus:ring-orange-400"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleConfirmSave()}
             />
