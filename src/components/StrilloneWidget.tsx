@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star } from 'lucide-react';
+import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag } from 'lucide-react';
 import { WidgetData, WidgetType } from '../types';
 
-// --- ASSET PREIMPOSTATI (Con Nuova Categoria Emozioni) ---
+// --- ASSET PREIMPOSTATI ---
 const DEFAULT_ASSETS = {
     mascots: [
         { id: 'strillone', label: 'Strillone', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995655.png' },
@@ -25,14 +25,12 @@ const DEFAULT_ASSETS = {
         { id: 'approved', label: 'Approvato', src: 'https://cdn-icons-png.flaticon.com/512/5229/5229357.png' }
     ],
     emotions: [
-        // EVENTI
         { id: 'grad_cap', label: 'Tocco', content: '🎓' },
         { id: 'rings', label: 'Fedi', content: '💍' },
         { id: 'dove', label: 'Colomba', content: '🕊️' },
         { id: 'xmas_tree', label: 'Albero', content: '🎄' },
         { id: 'pumpkin', label: 'Zucca', content: '🎃' },
         { id: 'baby', label: 'Ciuccio', content: '👶' },
-        // SENTIMENTI
         { id: 'love', label: 'Amore', content: '🥰' },
         { id: 'laugh', label: 'Risata', content: '😂' },
         { id: 'cry_joy', label: 'Gioia', content: '🥹' },
@@ -50,6 +48,29 @@ const DEFAULT_ASSETS = {
     ]
 };
 
+// --- FUNZIONE DI COMPRESSIONE IMMAGINI ---
+// Riduce le immagini troppo grandi per evitare crash
+const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 300; // Dimensione ottimale per sticker
+                const scaleSize = MAX_WIDTH / img.width;
+                canvas.width = MAX_WIDTH;
+                canvas.height = img.height * scaleSize;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); // Comprime qualità al 70%
+            };
+        };
+    });
+};
+
 interface WidgetLibraryProps {
     isOpen: boolean;
     onClose: () => void;
@@ -59,8 +80,9 @@ interface WidgetLibraryProps {
 export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, onAddWidget }) => {
     const [activeTab, setActiveTab] = useState<'mascots' | 'emotions' | 'bubbles' | 'stickers' | 'qr'>('mascots');
     const [qrLink, setQrLink] = useState('');
+    const [qrLabel, setQrLabel] = useState(''); // Nuovo campo Etichetta QR
+    const [isLoading, setIsLoading] = useState(false);
     
-    // CARICAMENTO SALVATAGGI (QR e MASCOTTE)
     const [savedQRs, setSavedQRs] = useState<{label: string, link: string}[]>(() => {
         try { const s = localStorage.getItem('saved_qrs'); return s ? JSON.parse(s) : []; } catch(e){return[];}
     });
@@ -68,24 +90,40 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
         try { const saved = localStorage.getItem('custom_mascots'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
     });
 
-    // UPLOAD FOTO PERSONALI
-    const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // UPLOAD SICURO (Con compressione)
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result as string;
-                onAddWidget('mascot', base64, 'custom');
-                const newMascot = { id: `custom-${Date.now()}`, label: 'Mio Personaggio', src: base64 };
+            // Controllo tipo file
+            if (!file.type.startsWith('image/')) {
+                alert("Per favore carica solo immagini (JPG, PNG).");
+                return;
+            }
+            
+            setIsLoading(true);
+            try {
+                // Comprimi immagine prima di salvare
+                const compressedBase64 = await compressImage(file);
+                
+                onAddWidget('mascot', compressedBase64, 'custom');
+                const newMascot = { id: `custom-${Date.now()}`, label: 'Mio Personaggio', src: compressedBase64 };
+                
                 const updatedMascots = [...customMascots, newMascot];
                 setCustomMascots(updatedMascots);
-                try { localStorage.setItem('custom_mascots', JSON.stringify(updatedMascots)); } catch (e) { alert("Attenzione: Memoria locale piena."); }
-            };
-            reader.readAsDataURL(file);
+                
+                try { 
+                    localStorage.setItem('custom_mascots', JSON.stringify(updatedMascots)); 
+                } catch (e) { 
+                    alert("Memoria browser piena. L'immagine è stata aggiunta al giornale ma non verrà salvata per la prossima volta."); 
+                }
+            } catch (err) {
+                alert("Errore nel caricamento immagine.");
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
 
-    // ELIMINA MASCOTTE
     const removeCustomMascot = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         if(!confirm("Vuoi eliminare questa immagine dalla libreria?")) return;
@@ -94,15 +132,21 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
         localStorage.setItem('custom_mascots', JSON.stringify(updated));
     };
 
-    // GENERAZIONE QR CON CRONOLOGIA
+    // GENERAZIONE QR CON ETICHETTA
     const handleGenerateQR = () => {
         if (!qrLink) return;
         onAddWidget('qrcode', qrLink);
-        const newEntry = { label: `Link ${new Date().toLocaleTimeString()}`, link: qrLink };
-        const updatedQRs = [newEntry, ...savedQRs].slice(0, 10); // Tiene ultimi 10
+        
+        // Usa l'etichetta dell'utente o un default
+        const finalLabel = qrLabel.trim() || `Link ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        
+        const newEntry = { label: finalLabel, link: qrLink };
+        const updatedQRs = [newEntry, ...savedQRs].slice(0, 10); 
         setSavedQRs(updatedQRs);
         localStorage.setItem('saved_qrs', JSON.stringify(updatedQRs));
+        
         setQrLink('');
+        setQrLabel(''); // Resetta campo
         onClose();
     };
     
@@ -123,12 +167,11 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                 <div className="p-6 bg-stone-50 border-b flex justify-between items-center">
                     <div>
                         <h2 className="text-2xl font-black text-stone-800 flex items-center gap-2"><Library className="text-blue-600"/> Libreria Widget</h2>
-                        <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mt-1">Mascotte, Emozioni & QR</p>
+                        <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mt-1">Crea, Carica, Decora</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-red-100 rounded-full text-stone-500 hover:text-red-500 transition-colors"><X size={24}/></button>
                 </div>
 
-                {/* TABS DI NAVIGAZIONE */}
                 <div className="flex border-b border-stone-200 overflow-x-auto">
                     <button onClick={() => setActiveTab('mascots')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'mascots' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><Smile size={18}/> Personaggi</button>
                     <button onClick={() => setActiveTab('emotions')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'emotions' ? 'text-pink-600 border-b-4 border-pink-600 bg-pink-50' : 'text-stone-400 hover:bg-stone-50'}`}><Heart size={18}/> Emozioni</button>
@@ -138,13 +181,15 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 bg-stone-100/50">
-                    {/* MASCOTTE & FOTO UTENTE */}
                     {activeTab === 'mascots' && (
                         <>
-                            <label className="flex items-center gap-3 p-4 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors mb-6 group">
+                            <label className={`flex items-center gap-3 p-4 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors mb-6 group ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div className="bg-white p-2 rounded-full shadow-sm group-hover:scale-110 transition-transform"><Upload className="text-blue-500" size={20}/></div>
-                                <div><h4 className="font-bold text-blue-900 text-sm">CARICA FOTO TUA</h4><p className="text-[10px] text-blue-600">Per il 60° o Ricordi</p></div>
-                                <input type="file" accept="image/*" className="hidden" onChange={handleUpload}/>
+                                <div>
+                                    <h4 className="font-bold text-blue-900 text-sm">{isLoading ? 'COMPRESSIONE IN CORSO...' : 'CARICA FOTO TUA'}</h4>
+                                    <p className="text-[10px] text-blue-600">Ottimizzata per non bloccare il sito</p>
+                                </div>
+                                <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={handleUpload}/>
                             </label>
                             <div className="grid grid-cols-2 gap-4">
                                 {customMascots.map(m => (
@@ -160,7 +205,6 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         </>
                     )}
 
-                    {/* EMOZIONI (NEW!) */}
                     {activeTab === 'emotions' && (
                         <div className="grid grid-cols-4 gap-4">
                             {DEFAULT_ASSETS.emotions.map(e => (
@@ -172,7 +216,6 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         </div>
                     )}
 
-                    {/* FUMETTI */}
                     {activeTab === 'bubbles' && (
                         <div className="grid grid-cols-2 gap-4">
                              {DEFAULT_ASSETS.bubbles.map(b => (
@@ -182,7 +225,6 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         </div>
                     )}
 
-                    {/* STICKERS OGGETTI */}
                      {activeTab === 'stickers' && (
                         <div className="grid grid-cols-3 gap-4">
                             {DEFAULT_ASSETS.stickers.map(s => (
@@ -191,7 +233,6 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         </div>
                     )}
 
-                    {/* QR CODE & HISTORY */}
                     {activeTab === 'qr' && (
                         <div className="space-y-6">
                             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
@@ -201,8 +242,11 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                             </div>
                             <div>
                                 <label className="text-xs font-bold uppercase text-stone-500 mb-2 block">Incolla Link Video/Audio</label>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 mb-2">
                                     <div className="relative flex-1"><LinkIcon size={16} className="absolute top-3 left-3 text-stone-400"/><input type="text" value={qrLink} onChange={(e) => setQrLink(e.target.value)} placeholder="https://..." className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none"/></div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1"><Tag size={16} className="absolute top-3 left-3 text-stone-400"/><input type="text" value={qrLabel} onChange={(e) => setQrLabel(e.target.value)} placeholder="Nome del QR (es. Video Auguri)" className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none"/></div>
                                 </div>
                             </div>
                             <button onClick={handleGenerateQR} disabled={!qrLink} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-stone-300 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-105"><QrCode size={20}/> GENERA QR CODE</button>
@@ -214,7 +258,10 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                                     <div className="space-y-2">
                                         {savedQRs.map((qr, idx) => (
                                             <div key={idx} className="flex items-center justify-between bg-white p-2 border rounded shadow-sm">
-                                                <button onClick={() => loadSavedQR(qr.link)} className="text-xs font-medium text-blue-600 hover:underline truncate max-w-[150px]">{qr.label}</button>
+                                                <div className="flex flex-col items-start overflow-hidden">
+                                                    <button onClick={() => loadSavedQR(qr.link)} className="text-xs font-bold text-blue-600 hover:underline truncate max-w-[200px] text-left">{qr.label}</button>
+                                                    <span className="text-[10px] text-stone-400 truncate w-full">{qr.link}</span>
+                                                </div>
                                                 <button onClick={(e) => deleteSavedQR(idx, e)} className="text-stone-400 hover:text-red-500 p-1"><Trash2 size={12}/></button>
                                             </div>
                                         ))}
@@ -371,7 +418,6 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({ widget, isSelected, o
     );
 };
 
-// --- WIDGET LAYER (Definizione Mancante Aggiunta) ---
 interface WidgetLayerProps {
     widgets: WidgetData[];
     setWidgets: React.Dispatch<React.SetStateAction<WidgetData[]>>;
