@@ -24,31 +24,39 @@ const COLORS = [
 ];
 
 export const EditableText: React.FC<EditableTextProps> = ({ 
-  value, 
-  onChange, 
-  className = "", 
-  placeholder = "Modifica...", 
-  multiline = false,
-  aiEnabled = true,
-  aiContext = "",
-  mode
+  value, onChange, className = "", placeholder = "Modifica...", multiline = false, aiEnabled = true, aiContext = "", mode
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [prompt, setPrompt] = useState("");
   
-  // Style State
   const [isBold, setIsBold] = useState(className.includes('font-bold'));
   const [isItalic, setIsItalic] = useState(className.includes('italic'));
   const [isUnderline, setIsUnderline] = useState(className.includes('underline'));
   const [textAlign, setTextAlign] = useState<'left'|'center'|'right'|'justify'>('left');
-  const [currentFont, setCurrentFont] = useState('');
   const [currentColor, setCurrentColor] = useState('');
   const [fontSizeMod, setFontSizeMod] = useState(0); 
 
   const inputRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Focus automatico quando si apre l'editor
+  // --- LOGICA DI CHIUSURA MIGLIORATA ---
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+            const toolbar = document.getElementById('text-toolbar-portal');
+            if (toolbar && toolbar.contains(event.target as Node)) return; // Non chiudere se clicco la toolbar
+            setIsEditing(false);
+        }
+    };
+    if (isEditing) {
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isEditing]);
+
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
@@ -60,17 +68,15 @@ export const EditableText: React.FC<EditableTextProps> = ({
     ${isItalic ? 'italic' : ''} 
     ${isUnderline ? 'underline' : ''} 
     ${textAlign === 'center' ? 'text-center' : textAlign === 'right' ? 'text-right' : textAlign === 'justify' ? 'text-justify' : 'text-left'}
-    ${currentFont}
     ${currentColor}
     ${className} 
   `.trim();
 
   const sizeStyle = fontSizeMod !== 0 ? { fontSize: `calc(100% + ${fontSizeMod * 2}px)` } : {};
 
-  // Toolbar Component
   const Toolbar = () => {
       const portalTarget = document.getElementById('text-toolbar-portal');
-      if (!portalTarget) return null; // Se la toolbar non trova il posto, non si mostra (evita errori)
+      if (!portalTarget) return null;
 
       return createPortal(
         <div 
@@ -115,7 +121,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   if (isEditing) {
       return (
-        <div className="relative group z-[50]" onClick={e => e.stopPropagation()}>
+        <div ref={containerRef} className="relative group z-[50]" onClick={e => e.stopPropagation()}>
            <Toolbar />
            {multiline ? (
                <textarea
@@ -124,14 +130,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
                    style={sizeStyle}
                    value={value}
                    onChange={(e) => onChange(e.target.value)}
-                   onBlur={() => {
-                        // Ritardo leggero per permettere click sui bottoni della toolbar prima di chiudere
-                        setTimeout(() => {
-                           if (!document.activeElement?.closest('#text-toolbar-portal')) {
-                               // setIsEditing(false); // Commentato per permettere click manuale sulla X
-                           }
-                        }, 200);
-                   }}
                />
            ) : (
                <input
@@ -142,8 +140,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
                    onChange={(e) => onChange(e.target.value)}
                />
            )}
-           {/* Overlay cliccabile per chiudere cliccando fuori */}
-           <div className="fixed inset-0 z-[-1]" onClick={(e) => { e.stopPropagation(); setIsEditing(false); }} />
         </div>
       )
   }
@@ -151,6 +147,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   return (
     <>
     <div 
+        ref={containerRef}
         className={`relative group cursor-pointer hover:bg-blue-50/50 rounded transition-colors p-0.5 ${dynamicClassName}`}
         style={sizeStyle}
         onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
