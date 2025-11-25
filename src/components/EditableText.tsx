@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Wand2, X, Sparkles, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus, Plus, Volume2, Loader2 } from 'lucide-react';
+import { Wand2, X, Sparkles, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus, Plus } from 'lucide-react';
 import { generateArticleContent } from '../services/gemini';
 
 interface EditableTextProps {
@@ -36,7 +36,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [prompt, setPrompt] = useState("");
-  const uniqueId = useRef(Math.random().toString(36).substr(2, 9));
   
   // Style State
   const [isBold, setIsBold] = useState(className.includes('font-bold'));
@@ -47,37 +46,12 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const [currentColor, setCurrentColor] = useState('');
   const [fontSizeMod, setFontSizeMod] = useState(0); 
 
-  const [isLoadingSpeech, setIsLoadingSpeech] = useState(false);
   const inputRef = useRef<HTMLElement>(null);
 
-  // FIX: Semplificato la gestione eventi per evitare errori TypeScript
-  useEffect(() => {
-    const handleGlobalClick = () => setIsEditing(false);
-    
-    // Cast esplicito per evitare errori di tipo
-    const handleEditorFocus = (e: Event) => {
-        const customEvent = e as CustomEvent;
-        if (customEvent.detail !== uniqueId.current) {
-            setIsEditing(false);
-        }
-    };
-
-    if (isEditing) {
-        window.addEventListener('click', handleGlobalClick);
-        window.addEventListener('editor-focus', handleEditorFocus);
-    }
-
-    return () => {
-        window.removeEventListener('click', handleGlobalClick);
-        window.removeEventListener('editor-focus', handleEditorFocus);
-    };
-  }, [isEditing]);
-
+  // Focus automatico quando si apre l'editor
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
-      const event = new CustomEvent('editor-focus', { detail: uniqueId.current });
-      window.dispatchEvent(event);
     }
   }, [isEditing]);
 
@@ -93,10 +67,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   const sizeStyle = fontSizeMod !== 0 ? { fontSize: `calc(100% + ${fontSizeMod * 2}px)` } : {};
 
-  // Toolbar
+  // Toolbar Component
   const Toolbar = () => {
       const portalTarget = document.getElementById('text-toolbar-portal');
-      if (!portalTarget) return null;
+      if (!portalTarget) return null; // Se la toolbar non trova il posto, non si mostra (evita errori)
 
       return createPortal(
         <div 
@@ -150,7 +124,14 @@ export const EditableText: React.FC<EditableTextProps> = ({
                    style={sizeStyle}
                    value={value}
                    onChange={(e) => onChange(e.target.value)}
-                   autoFocus
+                   onBlur={() => {
+                        // Ritardo leggero per permettere click sui bottoni della toolbar prima di chiudere
+                        setTimeout(() => {
+                           if (!document.activeElement?.closest('#text-toolbar-portal')) {
+                               // setIsEditing(false); // Commentato per permettere click manuale sulla X
+                           }
+                        }, 200);
+                   }}
                />
            ) : (
                <input
@@ -159,9 +140,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
                    style={sizeStyle}
                    value={value}
                    onChange={(e) => onChange(e.target.value)}
-                   autoFocus
                />
            )}
+           {/* Overlay cliccabile per chiudere cliccando fuori */}
+           <div className="fixed inset-0 z-[-1]" onClick={(e) => { e.stopPropagation(); setIsEditing(false); }} />
         </div>
       )
   }
@@ -174,10 +156,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
         onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
     >
       {value || <span className="opacity-40 italic">{placeholder}</span>}
-      
-      <div className="absolute -top-3 right-0 hidden group-hover:flex gap-1 z-10">
-         {/* Audio disabilitato temporaneamente per stabilità */}
-      </div>
     </div>
 
     {showAiDialog && createPortal(
@@ -193,8 +171,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
                  <div className="flex justify-end gap-2">
                      <button onClick={() => setShowAiDialog(false)} className="px-4 py-2 text-gray-500">Annulla</button>
                      <button onClick={async () => {
-                         const res = await generateArticleContent(prompt, mode || 'body');
-                         onChange(res);
+                         try {
+                             const res = await generateArticleContent(prompt, mode || 'body');
+                             onChange(res);
+                         } catch(e) { console.error(e); }
                          setShowAiDialog(false);
                      }} className="px-4 py-2 bg-purple-600 text-white rounded">Genera</button>
                  </div>
