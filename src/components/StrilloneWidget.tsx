@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star } from 'lucide-react';
 import { WidgetData, WidgetType } from '../types';
 
-// --- PRESET ASSETS ---
+// --- ASSET PREIMPOSTATI (Con Nuova Categoria Emozioni) ---
 const DEFAULT_ASSETS = {
     mascots: [
         { id: 'strillone', label: 'Strillone', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995655.png' },
@@ -24,11 +24,29 @@ const DEFAULT_ASSETS = {
         { id: 'topsecret', label: 'Top Secret', src: 'https://cdn-icons-png.flaticon.com/512/9373/9373844.png' },
         { id: 'approved', label: 'Approvato', src: 'https://cdn-icons-png.flaticon.com/512/5229/5229357.png' }
     ],
+    emotions: [
+        // EVENTI
+        { id: 'grad_cap', label: 'Tocco', content: '🎓' },
+        { id: 'rings', label: 'Fedi', content: '💍' },
+        { id: 'dove', label: 'Colomba', content: '🕊️' },
+        { id: 'xmas_tree', label: 'Albero', content: '🎄' },
+        { id: 'pumpkin', label: 'Zucca', content: '🎃' },
+        { id: 'baby', label: 'Ciuccio', content: '👶' },
+        // SENTIMENTI
+        { id: 'love', label: 'Amore', content: '🥰' },
+        { id: 'laugh', label: 'Risata', content: '😂' },
+        { id: 'cry_joy', label: 'Gioia', content: '🥹' },
+        { id: 'cool', label: 'Cool', content: '😎' },
+        { id: 'party_face', label: 'Party', content: '🥳' },
+        { id: 'heart', label: 'Cuore', content: '❤️' },
+        { id: 'pray', label: 'Preghiera', content: '🙏' },
+        { id: 'star', label: 'Stella', content: '⭐' }
+    ],
     bubbles: [
-        { id: 'speech1', label: 'Fumetto 1', svg: `<svg viewBox="0 0 200 150"><path d="M10,75 Q10,10 100,10 T190,75 Q190,140 100,140 L60,140 L30,150 L40,130 Q10,130 10,75" fill="white" stroke="black" stroke-width="3"/></svg>` },
+        { id: 'speech1', label: 'Classico', svg: `<svg viewBox="0 0 200 150"><path d="M10,75 Q10,10 100,10 T190,75 Q190,140 100,140 L60,140 L30,150 L40,130 Q10,130 10,75" fill="white" stroke="black" stroke-width="3"/></svg>` },
         { id: 'thought', label: 'Pensiero', svg: `<svg viewBox="0 0 200 150"><path d="M20,75 Q20,10 100,10 T180,75 Q180,130 100,130 L60,130 L40,150 L50,120 Q20,120 20,75" fill="white" stroke="black" stroke-width="3" stroke-dasharray="5,5"/></svg>` },
         { id: 'shout', label: 'Urlo', svg: `<svg viewBox="0 0 200 150"><path d="M10,75 L30,40 L10,10 L60,30 L100,5 L140,30 L190,10 L170,40 L190,75 L170,110 L190,140 L140,120 L100,145 L60,120 L10,140 L30,110 Z" fill="white" stroke="black" stroke-width="3"/></svg>` },
-        { id: 'sign', label: 'Cartello', svg: `<svg viewBox="0 0 200 150"><rect x="10" y="10" width="180" height="100" fill="#f0f0f0" stroke="#5c4835" stroke-width="4"/><rect x="90" y="110" width="20" height="40" fill="#5c4835"/></svg>` }
+        { id: 'box', label: 'Didascalia', svg: `<svg viewBox="0 0 200 100"><rect x="2" y="2" width="196" height="96" fill="#fffbe6" stroke="black" stroke-width="2"/></svg>` }
     ]
 };
 
@@ -39,19 +57,18 @@ interface WidgetLibraryProps {
 }
 
 export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, onAddWidget }) => {
-    const [activeTab, setActiveTab] = useState<'mascots' | 'bubbles' | 'stickers' | 'qr'>('mascots');
+    const [activeTab, setActiveTab] = useState<'mascots' | 'emotions' | 'bubbles' | 'stickers' | 'qr'>('mascots');
     const [qrLink, setQrLink] = useState('');
     
+    // CARICAMENTO SALVATAGGI (QR e MASCOTTE)
+    const [savedQRs, setSavedQRs] = useState<{label: string, link: string}[]>(() => {
+        try { const s = localStorage.getItem('saved_qrs'); return s ? JSON.parse(s) : []; } catch(e){return[];}
+    });
     const [customMascots, setCustomMascots] = useState<{id: string, label: string, src: string}[]>(() => {
-        try {
-            const saved = localStorage.getItem('custom_mascots');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            console.error(e);
-            return [];
-        }
+        try { const saved = localStorage.getItem('custom_mascots'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
     });
 
+    // UPLOAD FOTO PERSONALI
     const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -62,24 +79,40 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                 const newMascot = { id: `custom-${Date.now()}`, label: 'Mio Personaggio', src: base64 };
                 const updatedMascots = [...customMascots, newMascot];
                 setCustomMascots(updatedMascots);
-                try { localStorage.setItem('custom_mascots', JSON.stringify(updatedMascots)); } catch (e) { alert("Memoria piena, mascotte aggiunta solo al giornale."); }
+                try { localStorage.setItem('custom_mascots', JSON.stringify(updatedMascots)); } catch (e) { alert("Attenzione: Memoria locale piena."); }
             };
             reader.readAsDataURL(file);
         }
     };
 
+    // ELIMINA MASCOTTE
     const removeCustomMascot = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
+        if(!confirm("Vuoi eliminare questa immagine dalla libreria?")) return;
         const updated = customMascots.filter(m => m.id !== id);
         setCustomMascots(updated);
         localStorage.setItem('custom_mascots', JSON.stringify(updated));
     };
 
+    // GENERAZIONE QR CON CRONOLOGIA
     const handleGenerateQR = () => {
         if (!qrLink) return;
         onAddWidget('qrcode', qrLink);
+        const newEntry = { label: `Link ${new Date().toLocaleTimeString()}`, link: qrLink };
+        const updatedQRs = [newEntry, ...savedQRs].slice(0, 10); // Tiene ultimi 10
+        setSavedQRs(updatedQRs);
+        localStorage.setItem('saved_qrs', JSON.stringify(updatedQRs));
         setQrLink('');
         onClose();
+    };
+    
+    const loadSavedQR = (link: string) => { onAddWidget('qrcode', link); onClose(); };
+    
+    const deleteSavedQR = (idx: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const updated = savedQRs.filter((_, i) => i !== idx);
+        setSavedQRs(updated);
+        localStorage.setItem('saved_qrs', JSON.stringify(updated));
     };
 
     if (!isOpen) return null;
@@ -90,24 +123,27 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                 <div className="p-6 bg-stone-50 border-b flex justify-between items-center">
                     <div>
                         <h2 className="text-2xl font-black text-stone-800 flex items-center gap-2"><Library className="text-blue-600"/> Libreria Widget</h2>
-                        <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mt-1">Mascotte, Oggetti & QR</p>
+                        <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mt-1">Mascotte, Emozioni & QR</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-red-100 rounded-full text-stone-500 hover:text-red-500 transition-colors"><X size={24}/></button>
                 </div>
 
+                {/* TABS DI NAVIGAZIONE */}
                 <div className="flex border-b border-stone-200 overflow-x-auto">
                     <button onClick={() => setActiveTab('mascots')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'mascots' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><Smile size={18}/> Personaggi</button>
+                    <button onClick={() => setActiveTab('emotions')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'emotions' ? 'text-pink-600 border-b-4 border-pink-600 bg-pink-50' : 'text-stone-400 hover:bg-stone-50'}`}><Heart size={18}/> Emozioni</button>
                     <button onClick={() => setActiveTab('bubbles')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'bubbles' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><MessageCircle size={18}/> Fumetti</button>
                     <button onClick={() => setActiveTab('stickers')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'stickers' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><Gift size={18}/> Oggetti</button>
                     <button onClick={() => setActiveTab('qr')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'qr' ? 'text-purple-600 border-b-4 border-purple-600 bg-purple-50' : 'text-stone-400 hover:bg-stone-50'}`}><QrCode size={18}/> QR & Audio</button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 bg-stone-100/50">
+                    {/* MASCOTTE & FOTO UTENTE */}
                     {activeTab === 'mascots' && (
                         <>
                             <label className="flex items-center gap-3 p-4 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors mb-6 group">
                                 <div className="bg-white p-2 rounded-full shadow-sm group-hover:scale-110 transition-transform"><Upload className="text-blue-500" size={20}/></div>
-                                <div><h4 className="font-bold text-blue-900 text-sm">CARICA FOTO TUA</h4><p className="text-[10px] text-blue-600">Salva nella libreria</p></div>
+                                <div><h4 className="font-bold text-blue-900 text-sm">CARICA FOTO TUA</h4><p className="text-[10px] text-blue-600">Per il 60° o Ricordi</p></div>
                                 <input type="file" accept="image/*" className="hidden" onChange={handleUpload}/>
                             </label>
                             <div className="grid grid-cols-2 gap-4">
@@ -118,11 +154,25 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                                     </div>
                                 ))}
                                 {DEFAULT_ASSETS.mascots.map(m => (
-                                    <button key={m.id} onClick={() => onAddWidget('mascot', m.src)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><img src={m.src} alt={m.label} className="h-24 object-contain" onError={(e) => {e.currentTarget.src='https://cdn-icons-png.flaticon.com/512/1170/1170688.png'; e.currentTarget.title='File non trovato'}} /><span className="text-xs font-bold text-stone-600 uppercase">{m.label}</span></button>
+                                    <button key={m.id} onClick={() => onAddWidget('mascot', m.src)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><img src={m.src} alt={m.label} className="h-24 object-contain"/><span className="text-xs font-bold text-stone-600 uppercase">{m.label}</span></button>
                                 ))}
                             </div>
                         </>
                     )}
+
+                    {/* EMOZIONI (NEW!) */}
+                    {activeTab === 'emotions' && (
+                        <div className="grid grid-cols-4 gap-4">
+                            {DEFAULT_ASSETS.emotions.map(e => (
+                                <button key={e.id} onClick={() => onAddWidget('sticker', e.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-pink-500 hover:shadow-md transition-all flex flex-col items-center justify-center aspect-square gap-1">
+                                    <span className="text-3xl">{e.content}</span>
+                                    <span className="text-[9px] font-bold text-stone-500 uppercase truncate w-full text-center">{e.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* FUMETTI */}
                     {activeTab === 'bubbles' && (
                         <div className="grid grid-cols-2 gap-4">
                              {DEFAULT_ASSETS.bubbles.map(b => (
@@ -131,6 +181,8 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                             <button onClick={() => onAddWidget('text', '')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><div className="h-20 flex items-center justify-center"><Type size={32} className="text-stone-400"/></div><span className="text-xs font-bold text-stone-600 uppercase">Solo Testo</span></button>
                         </div>
                     )}
+
+                    {/* STICKERS OGGETTI */}
                      {activeTab === 'stickers' && (
                         <div className="grid grid-cols-3 gap-4">
                             {DEFAULT_ASSETS.stickers.map(s => (
@@ -138,20 +190,37 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                             ))}
                         </div>
                     )}
+
+                    {/* QR CODE & HISTORY */}
                     {activeTab === 'qr' && (
                         <div className="space-y-6">
                             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                                <h4 className="font-bold text-orange-800 flex items-center gap-2 mb-2"><Mic size={18}/> Vuoi un Audio Augurio?</h4>
+                                <h4 className="font-bold text-orange-800 flex items-center gap-2 mb-2"><Mic size={18}/> Audio Dedica</h4>
                                 <p className="text-xs text-stone-600 mb-3 leading-relaxed">1. Vai su Vocaroo.<br/>2. Registra e clicca "Salva e Condividi".<br/>3. Copia il link e incollalo qui.</p>
                                 <a href="https://vocaroo.com/" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-orange-200 hover:bg-orange-300 text-orange-900 py-2 rounded-lg font-bold text-xs transition-colors">Vai su Vocaroo <ExternalLink size={12}/></a>
                             </div>
                             <div>
-                                <label className="text-xs font-bold uppercase text-stone-500 mb-2 block">Incolla Link</label>
+                                <label className="text-xs font-bold uppercase text-stone-500 mb-2 block">Incolla Link Video/Audio</label>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1"><LinkIcon size={16} className="absolute top-3 left-3 text-stone-400"/><input type="text" value={qrLink} onChange={(e) => setQrLink(e.target.value)} placeholder="https://..." className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none"/></div>
                                 </div>
                             </div>
                             <button onClick={handleGenerateQR} disabled={!qrLink} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-stone-300 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-105"><QrCode size={20}/> GENERA QR CODE</button>
+                            
+                            {/* CRONOLOGIA QR */}
+                            {savedQRs.length > 0 && (
+                                <div className="mt-6 border-t pt-4">
+                                    <h4 className="font-bold text-stone-600 flex items-center gap-2 mb-3 text-sm"><History size={16}/> I miei QR recenti</h4>
+                                    <div className="space-y-2">
+                                        {savedQRs.map((qr, idx) => (
+                                            <div key={idx} className="flex items-center justify-between bg-white p-2 border rounded shadow-sm">
+                                                <button onClick={() => loadSavedQR(qr.link)} className="text-xs font-medium text-blue-600 hover:underline truncate max-w-[150px]">{qr.label}</button>
+                                                <button onClick={(e) => deleteSavedQR(idx, e)} className="text-stone-400 hover:text-red-500 p-1"><Trash2 size={12}/></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -161,7 +230,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
     );
 };
 
-// --- INDIVIDUAL DRAGGABLE ITEM ---
+// --- DRAGGABLE ITEM (Invariato) ---
 interface DraggableWidgetProps {
     widget: WidgetData;
     isSelected: boolean;
@@ -279,7 +348,7 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({ widget, isSelected, o
                         )}
                     </div>
                 ) : (
-                    (widget.content.startsWith('<svg') || widget.content.startsWith('data:image/svg')) ? <div dangerouslySetInnerHTML={{__html: widget.content}} className="w-full h-full drop-shadow-xl"/> : <img src={widget.content} alt="widget" className="w-full h-full object-contain drop-shadow-xl pointer-events-none" draggable={false} />
+                    (widget.content.startsWith('<svg') || widget.content.startsWith('data:image/svg')) ? <div dangerouslySetInnerHTML={{__html: widget.content}} className="w-full h-full drop-shadow-xl"/> : (widget.content.match(/(\p{Emoji_Presentation}|\p{Extended_Pictographic})/u) ? <div className="w-full h-full flex items-center justify-center" style={{fontSize: `${Math.min(widget.style.width, widget.style.height)}px`}}>{widget.content}</div> : <img src={widget.content} alt="widget" className="w-full h-full object-contain drop-shadow-xl pointer-events-none" draggable={false} />)
                 )}
             </div>
 
@@ -301,13 +370,6 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({ widget, isSelected, o
         </div>
     );
 };
-
-interface WidgetLayerProps {
-    widgets: WidgetData[];
-    setWidgets: React.Dispatch<React.SetStateAction<WidgetData[]>>;
-    selectedId: string | null;
-    setSelectedId: (id: string | null) => void;
-}
 
 export const WidgetLayer: React.FC<WidgetLayerProps> = ({ widgets, setWidgets, selectedId, setSelectedId }) => {
     const handleUpdate = (id: string, changes: Partial<WidgetData['style']> & { text?: string }) => {
