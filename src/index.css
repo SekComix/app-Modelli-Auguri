@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- REGOLE STAMPA PERFETTA --- */
+@media print {
+  /* 1. Nascondiamo tutto ciò che non serve */
+  nav, 
+  button, 
+  .no-print,
+  .widget-library, 
+  input[type="file"],
+  .fixed, /* Nasconde i pannelli sovrapposti */
+  .absolute.top-0 /* Nasconde eventuali header flottanti */
+  { 
+    display: none !important; 
+  }
+
+  /* 2. Impostazioni del foglio fisico */
+  @page {
+    margin: 0;
+    size: auto; 
+  }
+
+  body {
+    background: white;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 3. Il contenitore del giornale deve riempire il foglio */
+  .print-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: block !important;
+  }
+
+  /* Gestione interruzioni pagina */
+  .break-after-page {
+    page-break-after: always;
+    break-after: page;
+  }
+}
+
+/* Nasconde scrollbar estetiche */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Animazioni interfaccia */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out forwards;
+}
