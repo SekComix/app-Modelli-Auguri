@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      // CRITICAL FIX: Ensure relative paths for assets in GitHub Pages
+      // QUESTA È LA RIGA MAGICA CHE RISOLVE LO SCHERMO NERO
       base: './', 
       
       build: {
