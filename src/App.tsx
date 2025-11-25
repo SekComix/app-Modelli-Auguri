@@ -3,17 +3,16 @@ import { ArticleType, NewspaperData, ContentBlock, BlockType, ThemeId, ExtraSpre
 import { EditableText } from './components/EditableText';
 import { ImageSpot } from './components/ImageSpot';
 import { WidgetLibrary, WidgetLayer } from './components/StrilloneWidget';
-import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone } from 'lucide-react';
+import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Calendar, User, Heart } from 'lucide-react';
 import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { THEMES, INITIAL_ARTICLES, INITIAL_DATA } from './data';
 
-// --- COMPONENTE PANNELLO STAMPA (Nuovo Task 4) ---
+// --- COMPONENTE PANNELLO STAMPA ---
 const PrintDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handlePrint = () => {
-    // Lancia la stampa nativa del browser che userà il nostro CSS @media print
     window.print();
-    onClose(); // Chiude il pannello dopo aver lanciato la stampa
+    onClose();
   };
 
   return (
@@ -22,24 +21,19 @@ const PrintDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <Printer size={48} className="mx-auto text-stone-800 mb-4" />
         <h2 className="text-2xl font-black font-oswald uppercase mb-2">Centro Stampa</h2>
         <p className="text-stone-600 font-serif italic mb-8">Il sistema adatterà automaticamente il giornale al foglio.</p>
-
         <div className="grid grid-cols-2 gap-4">
           <button onClick={handlePrint} className="group border-2 border-stone-200 hover:border-blue-600 rounded-xl p-4 transition-all hover:bg-blue-50">
             <div className="h-16 w-12 border-2 border-stone-400 mx-auto mb-2 bg-white group-hover:border-blue-500"></div>
             <span className="font-bold text-stone-800 group-hover:text-blue-700">Stampa A4</span>
             <span className="block text-[10px] text-stone-500">Stampante Casa</span>
           </button>
-
           <button onClick={handlePrint} className="group border-2 border-stone-200 hover:border-purple-600 rounded-xl p-4 transition-all hover:bg-purple-50">
             <div className="h-16 w-24 border-2 border-stone-400 mx-auto mb-2 bg-white group-hover:border-purple-500"></div>
             <span className="font-bold text-stone-800 group-hover:text-purple-700">Stampa A3</span>
             <span className="block text-[10px] text-stone-500">Tipografia / Poster</span>
           </button>
         </div>
-
-        <button onClick={onClose} className="mt-8 text-stone-400 hover:text-red-500 text-xs font-bold uppercase tracking-widest">
-          Annulla operazione
-        </button>
+        <button onClick={onClose} className="mt-8 text-stone-400 hover:text-red-500 text-xs font-bold uppercase tracking-widest">Annulla</button>
       </div>
     </div>
   );
@@ -78,7 +72,7 @@ const App: React.FC = () => {
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [showPrintDialog, setShowPrintDialog] = useState(false); // NUOVO STATO STAMPA
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [backupFilename, setBackupFilename] = useState('');
@@ -92,7 +86,75 @@ const App: React.FC = () => {
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD;
 
-  // --- LOGICA GESTIONALE ---
+  // --- LOGICA DI GENERAZIONE AUTOMATICA (L'Effetto Antonio) ---
+  const generateContentForEvent = (type: EventType, config: any): { pubName: string, articles: Record<string, ArticleData>, index: string, extraPages: ExtraSpread[] } => {
+    let pubName = "La Cronaca Quotidiana";
+    let articles = JSON.parse(JSON.stringify(INITIAL_ARTICLES));
+    let index = "- Esteri .......... Pag. 2\n- Economia ........ Pag. 4\n- Cruciverba ...... Pag. 11";
+    let extraPages: ExtraSpread[] = [];
+    
+    const name = config.heroName1 || "Protagonista";
+    const name2 = config.heroName2 || "Partner";
+    const genderSuffix = config.gender === 'F' ? 'a' : 'o'; // BenvenutO/A
+    
+    // Calcolo Età
+    let age = 0;
+    if (config.date) {
+        const birthYear = new Date(config.date).getFullYear();
+        const currentYear = new Date().getFullYear();
+        age = currentYear - birthYear;
+    }
+
+    switch (type) {
+        case EventType.BIRTHDAY:
+            pubName = `Il Corriere di ${name}`;
+            articles['lead'].headline = `BUON COMPLEANNO ${name.toUpperCase()}!`;
+            articles['lead'].subheadline = `Grande festa per i suoi splendidi ${age > 0 ? age : 'X'} anni`;
+            articles['lead'].content = `Oggi è un giorno speciale! ${name} festeggia un traguardo importante circondat${genderSuffix} dall'affetto di amici e parenti. \n\nUna giornata all'insegna della gioia e dei ricordi felici. Auguri da parte di tutti!`;
+            articles['sidebar'].headline = `AUGURI SPECIALI`;
+            articles['sidebar'].content = config.wishesFrom ? `Un messaggio speciale da parte di ${config.wishesFrom}: "Ti auguriamo il meglio per questo giorno fantastico!"` : "Tanti auguri di cuore!";
+            break;
+        case EventType.WEDDING:
+            pubName = `L'Eco degli Sposi`;
+            articles['lead'].headline = `${name.toUpperCase()} E ${name2 ? name2.toUpperCase() : 'PARTNER'} OGGI SPOSI!`;
+            articles['lead'].subheadline = "Il giorno più bello è finalmente arrivato";
+            articles['lead'].content = "L'amore è nell'aria. In una cornice da favola, i due innamorati hanno pronunciato il fatidico Sì.";
+            break;
+        case EventType.EIGHTEEN:
+            pubName = `Il Corriere dei 18 Anni`;
+            articles['lead'].headline = `FINALMENTE 18!`;
+            articles['lead'].subheadline = `Benvenut${genderSuffix} nel mondo dei grandi, ${name}`;
+            articles['lead'].content = `Patente, maturità e libertà! I 18 anni sono un traguardo unico. Buon divertimento!`;
+            break;
+        case EventType.GRADUATION:
+            pubName = `La Voce del Dottore`;
+            articles['lead'].headline = `CONGRATULAZIONI DOTTORE!`;
+            articles['lead'].content = `Dopo tanta fatica, ecco la meritata corona d'alloro per ${name}. Ad maiora!`;
+            break;
+    }
+    return { pubName, articles, index, extraPages };
+  };
+
+  const handleApplyEventConfig = async () => { 
+      setIsUpdatingEvent(true); 
+      try { 
+          const { eventType, eventConfig } = data; 
+          const content = generateContentForEvent(eventType, eventConfig); 
+          setData(prev => ({ ...prev, publicationName: content.pubName, articles: content.articles, indexContent: content.index, extraSpreads: content.extraPages })); 
+          setShowConfigPanel(false); 
+      } catch (e) { console.error(e); } finally { setIsUpdatingEvent(false); } 
+  };
+
+  // --- GESTIONE BLOCCHI (Invariata) ---
+  const addBlock = (section: 'front'|'back'|'sidebar', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type === 'image' ? '' : 'Nuovo...' }; const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: [...prev[listKey], newBlock] })); };
+  const updateBlock = (section: 'front'|'back'|'sidebar', id: string, value: string) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].map(b => b.id === id ? { ...b, content: value } : b) })); };
+  const removeBlock = (section: 'front'|'back'|'sidebar', id: string) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].filter(b => b.id !== id) })); };
+  const addSpread = () => { const startPage = 2 + (data.extraSpreads.length * 2); const newSpread: ExtraSpread = { id: `spread-${Date.now()}`, pageNumberLeft: startPage, pageNumberRight: startPage + 1, leftBlocks: [], rightBlocks: [] }; setData(prev => ({ ...prev, extraSpreads: [...prev.extraSpreads, newSpread] })); };
+  const addBlockToSpread = (sid: string, side: 'left'|'right', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type==='image'?'':'Nuovo...' }; setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: [...(side==='left'?s.leftBlocks:s.rightBlocks), newBlock] } : s) })); };
+  const updateBlockInSpread = (sid: string, side: 'left'|'right', bid: string, val: string) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].map(b => b.id===bid ? {...b, content: val} : b) } : s) })); };
+  const removeBlockInSpread = (sid: string, side: 'left'|'right', bid: string) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].filter(b => b.id !== bid) } : s) })); };
+
+  // --- ALTRE FUNZIONI UI ---
   const handleAddWidget = (type: WidgetType, content: string, subType?: string) => {
       const newWidget: WidgetData = { id: `widget-${Date.now()}`, type, content, text: type === 'bubble' ? 'Clicca...' : type === 'text' ? 'TESTO' : undefined, style: { x: window.innerWidth/2-100, y: window.scrollY+300, width: 200, height: 200, rotation: 0, zIndex: 50, fontSize: 24, color: '#000000', fontFamily: 'Chomsky', flipX: false } };
       if (type === 'sticker' && !subType) { newWidget.style.width = 100; newWidget.style.height = 100; }
@@ -116,24 +178,6 @@ const App: React.FC = () => {
   const updateArticle = (id: string, field: string, value: string) => setData(prev => ({ ...prev, articles: { ...prev.articles, [id]: { ...prev.articles[id], [field]: value } } }));
   const updateMeta = (field: keyof NewspaperData, value: string | number) => setData(prev => ({ ...prev, [field]: value }));
   const updateEventConfig = (field: keyof NewspaperData['eventConfig'], value: any) => setData(prev => ({ ...prev, eventConfig: { ...prev.eventConfig, [field]: value } }));
-  
-  const generateContentForEvent = (type: EventType, config: any): { pubName: string, articles: Record<string, ArticleData>, index: string, extraPages: ExtraSpread[] } => {
-    let pubName = "La Cronaca Quotidiana"; let articles = JSON.parse(JSON.stringify(INITIAL_ARTICLES)); let index = "- Esteri .......... Pag. 2\n- Economia ........ Pag. 4\n- Cruciverba ...... Pag. 11"; let extraPages: ExtraSpread[] = []; const name = config.heroName1 || "Protagonista"; const name2 = config.heroName2 || "Partner"; 
-    switch (type) {
-        case EventType.BIRTHDAY: pubName = `Il Corriere di ${name}`; articles['lead'].headline = `BUON COMPLEANNO ${name.toUpperCase()}!`; break;
-        case EventType.WEDDING: pubName = `L'Eco degli Sposi`; articles['lead'].headline = `${name.toUpperCase()} E ${name2.toUpperCase()} OGGI SPOSI!`; break;
-    }
-    return { pubName, articles, index, extraPages };
-  };
-
-  const handleApplyEventConfig = async () => { setIsUpdatingEvent(true); try { const { eventType, eventConfig } = data; const content = generateContentForEvent(eventType, eventConfig); setData(prev => ({ ...prev, publicationName: content.pubName, articles: content.articles, indexContent: content.index, extraSpreads: content.extraPages })); setShowConfigPanel(false); } catch (e) { console.error(e); } finally { setIsUpdatingEvent(false); } };
-  const addBlock = (section: 'front'|'back'|'sidebar', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type === 'image' ? '' : 'Nuovo...' }; const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: [...prev[listKey], newBlock] })); };
-  const updateBlock = (section: 'front'|'back'|'sidebar', id: string, value: string) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].map(b => b.id === id ? { ...b, content: value } : b) })); };
-  const removeBlock = (section: 'front'|'back'|'sidebar', id: string) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].filter(b => b.id !== id) })); };
-  const addSpread = () => { const startPage = 2 + (data.extraSpreads.length * 2); const newSpread: ExtraSpread = { id: `spread-${Date.now()}`, pageNumberLeft: startPage, pageNumberRight: startPage + 1, leftBlocks: [], rightBlocks: [] }; setData(prev => ({ ...prev, extraSpreads: [...prev.extraSpreads, newSpread] })); };
-  const addBlockToSpread = (sid: string, side: 'left'|'right', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type==='image'?'':'Nuovo...' }; setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: [...(side==='left'?s.leftBlocks:s.rightBlocks), newBlock] } : s) })); };
-  const updateBlockInSpread = (sid: string, side: 'left'|'right', bid: string, val: string) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].map(b => b.id===bid ? {...b, content: val} : b) } : s) })); };
-  const removeBlockInSpread = (sid: string, side: 'left'|'right', bid: string) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].filter(b => b.id !== bid) } : s) })); };
 
   const pageHeightClass = "h-[1350px] overflow-hidden";
   const customPageStyle = isDigital && data.customBgColor ? { backgroundColor: data.customBgColor } : {};
@@ -206,7 +250,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 p-2 pt-3 rounded-lg bg-stone-100 border border-stone-200 relative shrink-0 h-10 items-center">
                     <div className="absolute -top-2 left-2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">Stile</div>
-                    <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.eventType} onChange={handleEventTypeChange} title="Modello Evento"><option value={EventType.GENERIC}>Generico</option><option value={EventType.BIRTHDAY}>Compleanno</option><option value={EventType.EIGHTEEN}>18 Anni</option><option value={EventType.WEDDING}>Matrimonio</option></select>
+                    <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.eventType} onChange={handleEventTypeChange} title="Modello Evento"><option value={EventType.GENERIC}>Generico</option><option value={EventType.BIRTHDAY}>Compleanno</option><option value={EventType.EIGHTEEN}>18 Anni</option><option value={EventType.WEDDING}>Matrimonio</option><option value={EventType.GRADUATION}>Laurea</option></select>
                     <div className="w-px h-4 bg-stone-300"></div>
                     <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.themeId} onChange={(e) => updateTheme(e.target.value as ThemeId)} title="Tema Grafico">{Object.values(THEMES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
                     <button onClick={() => setShowConfigPanel(!showConfigPanel)} className={`p-1 rounded hover:bg-purple-100 text-purple-600 transition-colors ${showConfigPanel ? 'bg-purple-100' : ''}`} title="Personalizza Dettagli"><Settings size={16}/></button>
@@ -223,7 +267,46 @@ const App: React.FC = () => {
         </div>
         <div id="text-toolbar-portal" className="w-full bg-stone-50 border-t border-stone-200 empty:hidden transition-all duration-300"></div>
       </nav>
-      {showConfigPanel && (<div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative"><div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} /></label></div><button onClick={handleApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">{isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica</button></div>)}
+      
+      {/* PANNELLO CONFIGURAZIONE COMPLETO (RIPRISTINATO) */}
+      {showConfigPanel && (
+          <div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative">
+              <div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div>
+              <div className="flex flex-col">
+                  <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista
+                    <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} placeholder="Nome"/>
+                  </label>
+              </div>
+              {data.eventType === EventType.WEDDING && (
+                  <div className="flex flex-col">
+                      <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Partner
+                        <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} />
+                      </label>
+                  </div>
+              )}
+              <div className="flex flex-col">
+                  <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere
+                    <select className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1 w-24" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}>
+                        <option value="M">Maschio</option>
+                        <option value="F">Femmina</option>
+                    </select>
+                  </label>
+              </div>
+              <div className="flex flex-col">
+                  <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data di Nascita/Evento
+                    <input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} />
+                  </label>
+              </div>
+              <div className="flex flex-col">
+                  <label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da
+                    <input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/>
+                  </label>
+              </div>
+              <button onClick={handleApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">
+                  {isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica
+              </button>
+          </div>
+      )}
 
       <div className="max-w-[1600px] mx-auto shadow-2xl print:shadow-none transition-all duration-500 relative print-container">
         {isPoster ? <div className="w-full bg-white print:w-full">{renderFrontPage('w-full')}</div> : isCard ? <div className="flex flex-col lg:flex-row bg-[#f0f0f0] print:flex-row print:w-full">{renderFrontPage('w-full lg:w-1/2 lg:border-r border-dashed border-stone-400')}{renderBackPage('w-full lg:w-1/2')}</div> : (isDigital ? <div className="flex flex-col gap-8 print:block print:gap-0">{renderFrontPage('w-full shadow-xl print:shadow-none print:break-after-page')}{data.extraSpreads.map(s=><div key={s.id}>{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{renderBackPage('w-full shadow-xl print:shadow-none print:break-after-page')}</div> : <><div className={`flex flex-col lg:flex-row ${data.themeId!=='modern'?'bg-[#f0f0f0]':'bg-white'} print:flex-row print:break-after-page`}>{renderFrontPage('w-full lg:w-1/2')}{renderBackPage('w-full lg:w-1/2 border-t lg:border-t-0 lg:border-l border-stone-400 border-dashed')}</div>{data.extraSpreads.map(s=><div key={s.id} className="flex flex-col lg:flex-row bg-[#e8dcc6] print:flex-row mt-8 lg:mt-12 print:mt-0 border-t-8 border-stone-600 print:border-0">{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}<div className="hidden print:block absolute top-1/2 left-0 w-full border-t border-dashed border-black"></div>{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{data.extraSpreads.length===0 && <div className="flex justify-center py-8 print:hidden"><button onClick={addSpread} className="flex items-center gap-2 bg-stone-700 hover:bg-stone-900 text-white px-6 py-3 rounded-full shadow-xl font-bold transition-transform hover:scale-105"><BookOpen size={20}/> Aggiungi Inserto</button></div>}</>)}
@@ -236,7 +319,6 @@ const App: React.FC = () => {
       {showEmailDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowEmailDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-md w-full border-2 border-stone-800" onClick={e=>e.stopPropagation()}><div className="flex items-center justify-between mb-6 border-b pb-4"><h3 className="text-xl font-bold uppercase flex items-center gap-2"><Mail size={24}/> Email</h3><button onClick={()=>setShowEmailDialog(false)}><X size={24}/></button></div><div className="space-y-2"><button onClick={()=>{const s=encodeURIComponent(`Giornale: ${data.publicationName}`);const b=encodeURIComponent("Allega PDF");window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`,'_blank');setShowEmailDialog(false)}} className="w-full bg-red-600 hover:bg-red-700 text-white p-3 font-bold uppercase rounded mb-2 flex items-center justify-center gap-2 shadow-md">GMAIL</button><button onClick={()=>{window.location.href=`mailto:?subject=${encodeURIComponent(data.publicationName)}&body=${encodeURIComponent("Allega PDF")}`;setShowEmailDialog(false)}} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 font-bold uppercase rounded flex items-center justify-center gap-2 shadow-md">OUTLOOK</button></div></div></div>}
       {showHelpDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowHelpDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-lg w-full border-4 border-stone-800 relative" onClick={e=>e.stopPropagation()}><button onClick={()=>setShowHelpDialog(false)} className="absolute top-4 right-4 hover:bg-red-100 rounded-full p-1 text-red-500"><X size={24}/></button><h3 className="text-2xl font-black uppercase mb-6 flex items-center gap-2 border-b pb-4"><HelpCircle size={32}/> Guida</h3><div className="mt-8 text-center"><button onClick={()=>setShowHelpDialog(false)} className="bg-stone-900 text-white px-8 py-3 rounded-lg font-bold uppercase hover:scale-105 transition-transform">Ho Capito!</button></div></div></div>}
       
-      {/* PANNNELLO STAMPA (VISIBILE SOLO QUANDO ATTIVATO) */}
       {showPrintDialog && <PrintDialog onClose={() => setShowPrintDialog(false)} />}
     </div>
   );
