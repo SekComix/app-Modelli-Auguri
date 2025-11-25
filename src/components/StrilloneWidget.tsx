@@ -371,6 +371,14 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({ widget, isSelected, o
     );
 };
 
+// --- WIDGET LAYER (Definizione Mancante Aggiunta) ---
+interface WidgetLayerProps {
+    widgets: WidgetData[];
+    setWidgets: React.Dispatch<React.SetStateAction<WidgetData[]>>;
+    selectedId: string | null;
+    setSelectedId: (id: string | null) => void;
+}
+
 export const WidgetLayer: React.FC<WidgetLayerProps> = ({ widgets, setWidgets, selectedId, setSelectedId }) => {
     const handleUpdate = (id: string, changes: Partial<WidgetData['style']> & { text?: string }) => {
         setWidgets(prev => prev.map(w => { if (w.id !== id) return w; const { text, ...styleChanges } = changes; return { ...w, text: text !== undefined ? text : w.text, style: { ...w.style, ...styleChanges } }; }));
