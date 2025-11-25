@@ -3,11 +3,49 @@ import { ArticleType, NewspaperData, ContentBlock, BlockType, ThemeId, ExtraSpre
 import { EditableText } from './components/EditableText';
 import { ImageSpot } from './components/ImageSpot';
 import { WidgetLibrary, WidgetLayer } from './components/StrilloneWidget';
-import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, Heart, GraduationCap, Baby, Crown, Snowflake, Sun, BookOpen, Megaphone, Save, FolderOpen, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye } from 'lucide-react';
+import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone } from 'lucide-react';
 import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { THEMES, INITIAL_ARTICLES, INITIAL_DATA } from './data';
 
+// --- COMPONENTE PANNELLO STAMPA (Nuovo Task 4) ---
+const PrintDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const handlePrint = () => {
+    // Lancia la stampa nativa del browser che userà il nostro CSS @media print
+    window.print();
+    onClose(); // Chiude il pannello dopo aver lanciato la stampa
+  };
+
+  return (
+    <div className="fixed inset-0 bg-stone-900/95 z-[9999] flex items-center justify-center p-4 animate-fade-in-up">
+      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center border-4 border-stone-800">
+        <Printer size={48} className="mx-auto text-stone-800 mb-4" />
+        <h2 className="text-2xl font-black font-oswald uppercase mb-2">Centro Stampa</h2>
+        <p className="text-stone-600 font-serif italic mb-8">Il sistema adatterà automaticamente il giornale al foglio.</p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <button onClick={handlePrint} className="group border-2 border-stone-200 hover:border-blue-600 rounded-xl p-4 transition-all hover:bg-blue-50">
+            <div className="h-16 w-12 border-2 border-stone-400 mx-auto mb-2 bg-white group-hover:border-blue-500"></div>
+            <span className="font-bold text-stone-800 group-hover:text-blue-700">Stampa A4</span>
+            <span className="block text-[10px] text-stone-500">Stampante Casa</span>
+          </button>
+
+          <button onClick={handlePrint} className="group border-2 border-stone-200 hover:border-purple-600 rounded-xl p-4 transition-all hover:bg-purple-50">
+            <div className="h-16 w-24 border-2 border-stone-400 mx-auto mb-2 bg-white group-hover:border-purple-500"></div>
+            <span className="font-bold text-stone-800 group-hover:text-purple-700">Stampa A3</span>
+            <span className="block text-[10px] text-stone-500">Tipografia / Poster</span>
+          </button>
+        </div>
+
+        <button onClick={onClose} className="mt-8 text-stone-400 hover:text-red-500 text-xs font-bold uppercase tracking-widest">
+          Annulla operazione
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- COMPONENTI AUSILIARI ---
 const CrosswordGrid = () => {
     const gridMap = [[1,1,1,1,1,1,1,1],[1,1,0,1,1,1,1,1],[1,1,0,1,1,1,1,1],[1,1,0,1,1,1,1,1],[0,0,0,0,0,1,1,1],[1,1,0,1,1,1,1,1],[1,0,0,0,0,0,0,0],[1,1,0,1,1,1,1,1]];
     const numbers = [{r:1,c:2,n:2},{r:4,c:0,n:1},{r:6,c:1,n:3}];
@@ -23,6 +61,7 @@ const RenderBlocks: React.FC<any> = ({ blocks, onUpdate, onRemove, theme, isSide
   <>{blocks.map((block:any) => (<div key={block.id} className="group relative mb-4 animate-fade-in-up">{!isPreview&&(<button onClick={()=>onRemove(block.id)} className="absolute -left-8 top-0 p-1 text-red-400 hover:text-red-600 hidden group-hover:block print:hidden bg-white rounded-full shadow-sm border z-20"><Trash2 size={14}/></button>)}{block.type==='headline'&&<EditableText value={block.content} onChange={(v:string)=>onUpdate(block.id,v)} className={`${theme.headlineFont} ${isSidebar?'text-xl':'text-3xl'} font-bold leading-tight my-2`} aiEnabled={!isPreview} aiContext="Titolo" mode="headline"/>}{block.type==='paragraph'&&<div className={`${isSidebar?'columns-1':'columns-2 gap-6'} ${theme.bodyFont} text-sm text-justify leading-relaxed`}><EditableText value={block.content} onChange={(v:string)=>onUpdate(block.id,v)} multiline={true} aiEnabled={!isPreview} aiContext="Testo" mode="body"/></div>}{block.type==='image'&&<ImageSpot src={block.content} onChange={(v:string)=>onUpdate(block.id,v)} className={`w-full my-4 ${theme.borderClass} border shadow-sm`} autoHeight={true} filters={theme.imageFilter}/>}</div>))}</>
 );
 
+// --- APP PRINCIPALE ---
 const App: React.FC = () => {
   const [data, setData] = useState<NewspaperData>(() => {
       const saved = localStorage.getItem('newspaper_data');
@@ -31,6 +70,7 @@ const App: React.FC = () => {
   });
   const [appConfig, setAppConfig] = useState(() => { const saved = localStorage.getItem('app_config'); return saved ? JSON.parse(saved) : { title: 'THE SEK CREATOR AND DESIGNER', logo: '' }; });
   
+  // STATI UI
   const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
@@ -38,6 +78,7 @@ const App: React.FC = () => {
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false); // NUOVO STATO STAMPA
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [backupFilename, setBackupFilename] = useState('');
@@ -51,6 +92,7 @@ const App: React.FC = () => {
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD;
 
+  // --- LOGICA GESTIONALE ---
   const handleAddWidget = (type: WidgetType, content: string, subType?: string) => {
       const newWidget: WidgetData = { id: `widget-${Date.now()}`, type, content, text: type === 'bubble' ? 'Clicca...' : type === 'text' ? 'TESTO' : undefined, style: { x: window.innerWidth/2-100, y: window.scrollY+300, width: 200, height: 200, rotation: 0, zIndex: 50, fontSize: 24, color: '#000000', fontFamily: 'Chomsky', flipX: false } };
       if (type === 'sticker' && !subType) { newWidget.style.width = 100; newWidget.style.height = 100; }
@@ -76,7 +118,7 @@ const App: React.FC = () => {
   const updateEventConfig = (field: keyof NewspaperData['eventConfig'], value: any) => setData(prev => ({ ...prev, eventConfig: { ...prev.eventConfig, [field]: value } }));
   
   const generateContentForEvent = (type: EventType, config: any): { pubName: string, articles: Record<string, ArticleData>, index: string, extraPages: ExtraSpread[] } => {
-    let pubName = "La Cronaca Quotidiana"; let articles = JSON.parse(JSON.stringify(INITIAL_ARTICLES)); let index = "- Esteri .......... Pag. 2\n- Economia ........ Pag. 4\n- Cruciverba ...... Pag. 11"; let extraPages: ExtraSpread[] = []; const name = config.heroName1 || "Protagonista"; const name2 = config.heroName2 || "Partner"; const year = new Date(config.date).getFullYear(); const age = config.age;
+    let pubName = "La Cronaca Quotidiana"; let articles = JSON.parse(JSON.stringify(INITIAL_ARTICLES)); let index = "- Esteri .......... Pag. 2\n- Economia ........ Pag. 4\n- Cruciverba ...... Pag. 11"; let extraPages: ExtraSpread[] = []; const name = config.heroName1 || "Protagonista"; const name2 = config.heroName2 || "Partner"; 
     switch (type) {
         case EventType.BIRTHDAY: pubName = `Il Corriere di ${name}`; articles['lead'].headline = `BUON COMPLEANNO ${name.toUpperCase()}!`; break;
         case EventType.WEDDING: pubName = `L'Eco degli Sposi`; articles['lead'].headline = `${name.toUpperCase()} E ${name2.toUpperCase()} OGGI SPOSI!`; break;
@@ -96,6 +138,7 @@ const App: React.FC = () => {
   const pageHeightClass = "h-[1350px] overflow-hidden";
   const customPageStyle = isDigital && data.customBgColor ? { backgroundColor: data.customBgColor } : {};
   
+  // --- RENDER PAGINE ---
   const renderFrontPage = (wrapperClass: string) => (
     <div className={`${wrapperClass} ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative ${currentTheme.borderClass} ${!isDigital && !isPoster && !isPreviewMode ? 'border-r' : ''} print:w-full`} style={customPageStyle}>
       {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilter)" /></svg></div>)}
@@ -137,9 +180,10 @@ const App: React.FC = () => {
      </div>
   );
 
+  // --- SCHERMATE DI AVVIO / PREVIEW ---
   if (showWelcomeScreen && !localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={handleImportState}/><WelcomeScreen hasSavedData={false} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
   if (showWelcomeScreen && localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={handleImportState}/><WelcomeScreen hasSavedData={true} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
-  if (isPreviewMode) return <div className="fixed inset-0 bg-stone-900 z-[1000] overflow-y-auto flex flex-col items-center p-8 print:bg-white print:p-0 print:block print:relative"><div className="w-full max-w-6xl flex justify-between items-center mb-8 text-white print:hidden"><div className="flex items-center gap-3"><Eye size={24} className="text-green-400"/><h2 className="text-2xl font-bold uppercase tracking-wider">Anteprima di Stampa</h2></div><div className="flex gap-4"><button onClick={()=>setIsPreviewMode(false)} className="bg-stone-700 hover:bg-stone-600 text-white px-6 py-3 rounded-full font-bold uppercase flex items-center gap-2"><ArrowLeft size={18}/> Torna all'Editor</button><button onClick={()=>window.print()} className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-full font-bold uppercase shadow-xl hover:scale-105 transition-transform flex items-center gap-2"><Printer size={20}/> STAMPA</button></div></div><div className="flex flex-col lg:flex-row bg-white shadow-2xl mb-12 print:shadow-none print:mb-0 print:w-full print:break-after-page"><div className="w-[800px] border-r border-dashed border-stone-300 print:w-1/2 print:border-none">{renderBackPage('w-full')}</div><div className="w-[800px] print:w-1/2">{renderFrontPage('w-full')}</div></div>{data.extraSpreads.map(spread=>(<div key={spread.id} className="flex flex-col lg:flex-row bg-white shadow-2xl mb-12 print:shadow-none print:mb-0 print:w-full print:break-before-page print:break-after-page"><div className="w-[800px] border-r border-dashed border-stone-300 print:w-1/2 print:border-none">{renderInternalPage(spread.leftBlocks,spread.pageNumberLeft,spread.id,'left')}</div><div className="w-[800px] print:w-1/2">{renderInternalPage(spread.rightBlocks,spread.pageNumberRight,spread.id,'right')}</div></div>))}</div>;
+  if (isPreviewMode) return <div className="fixed inset-0 bg-stone-900 z-[1000] overflow-y-auto flex flex-col items-center p-8 print:bg-white print:p-0 print:block print:relative"><div className="w-full max-w-6xl flex justify-between items-center mb-8 text-white print:hidden"><div className="flex items-center gap-3"><Eye size={24} className="text-green-400"/><h2 className="text-2xl font-bold uppercase tracking-wider">Anteprima di Stampa</h2></div><div className="flex gap-4"><button onClick={()=>setIsPreviewMode(false)} className="bg-stone-700 hover:bg-stone-600 text-white px-6 py-3 rounded-full font-bold uppercase flex items-center gap-2"><ArrowLeft size={18}/> Torna all'Editor</button><button onClick={()=>setShowPrintDialog(true)} className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-full font-bold uppercase shadow-xl hover:scale-105 transition-transform flex items-center gap-2"><Printer size={20}/> STAMPA</button></div></div><div className="flex flex-col lg:flex-row bg-white shadow-2xl mb-12 print:shadow-none print:mb-0 print:w-full print:break-after-page"><div className="w-[800px] border-r border-dashed border-stone-300 print:w-1/2 print:border-none">{renderBackPage('w-full')}</div><div className="w-[800px] print:w-1/2">{renderFrontPage('w-full')}</div></div>{data.extraSpreads.map(spread=>(<div key={spread.id} className="flex flex-col lg:flex-row bg-white shadow-2xl mb-12 print:shadow-none print:mb-0 print:w-full print:break-before-page print:break-after-page"><div className="w-[800px] border-r border-dashed border-stone-300 print:w-1/2 print:border-none">{renderInternalPage(spread.leftBlocks,spread.pageNumberLeft,spread.id,'left')}</div><div className="w-[800px] print:w-1/2">{renderInternalPage(spread.rightBlocks,spread.pageNumberRight,spread.id,'right')}</div></div>))} {showPrintDialog && <PrintDialog onClose={() => setShowPrintDialog(false)} />}</div>;
 
   return (
     <div className="min-h-screen bg-stone-800 p-4 lg:p-8 font-sans text-stone-900">
@@ -173,7 +217,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1 pl-2 border-l border-stone-200 shrink-0 h-10 items-center">
                     <button onClick={() => setIsPreviewMode(true)} className="bg-stone-800 hover:bg-black text-white px-3 py-2 rounded-lg font-bold text-xs shadow-md transition-transform hover:scale-105 flex gap-1 items-center" title="Anteprima Stampa"><Eye size={16}/> <span className="hidden xl:inline">Anteprima</span></button>
-                    <button onClick={() => setShowEmailDialog(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-bold text-xs shadow-md transition-transform hover:scale-105 flex gap-1 items-center" title="Invia Mail"><Mail size={16}/> <span className="hidden xl:inline">Invia</span></button>
+                    <button onClick={() => setShowPrintDialog(true)} className="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg font-bold text-xs shadow-md transition-transform hover:scale-105 flex gap-1 items-center" title="Stampa Subito"><Printer size={16}/> <span className="hidden xl:inline">Stampa</span></button>
                 </div>
             </div>
         </div>
@@ -181,7 +225,7 @@ const App: React.FC = () => {
       </nav>
       {showConfigPanel && (<div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative"><div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} /></label></div><button onClick={handleApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">{isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica</button></div>)}
 
-      <div className="max-w-[1600px] mx-auto shadow-2xl print:shadow-none transition-all duration-500 relative">
+      <div className="max-w-[1600px] mx-auto shadow-2xl print:shadow-none transition-all duration-500 relative print-container">
         {isPoster ? <div className="w-full bg-white print:w-full">{renderFrontPage('w-full')}</div> : isCard ? <div className="flex flex-col lg:flex-row bg-[#f0f0f0] print:flex-row print:w-full">{renderFrontPage('w-full lg:w-1/2 lg:border-r border-dashed border-stone-400')}{renderBackPage('w-full lg:w-1/2')}</div> : (isDigital ? <div className="flex flex-col gap-8 print:block print:gap-0">{renderFrontPage('w-full shadow-xl print:shadow-none print:break-after-page')}{data.extraSpreads.map(s=><div key={s.id}>{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{renderBackPage('w-full shadow-xl print:shadow-none print:break-after-page')}</div> : <><div className={`flex flex-col lg:flex-row ${data.themeId!=='modern'?'bg-[#f0f0f0]':'bg-white'} print:flex-row print:break-after-page`}>{renderFrontPage('w-full lg:w-1/2')}{renderBackPage('w-full lg:w-1/2 border-t lg:border-t-0 lg:border-l border-stone-400 border-dashed')}</div>{data.extraSpreads.map(s=><div key={s.id} className="flex flex-col lg:flex-row bg-[#e8dcc6] print:flex-row mt-8 lg:mt-12 print:mt-0 border-t-8 border-stone-600 print:border-0">{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}<div className="hidden print:block absolute top-1/2 left-0 w-full border-t border-dashed border-black"></div>{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{data.extraSpreads.length===0 && <div className="flex justify-center py-8 print:hidden"><button onClick={addSpread} className="flex items-center gap-2 bg-stone-700 hover:bg-stone-900 text-white px-6 py-3 rounded-full shadow-xl font-bold transition-transform hover:scale-105"><BookOpen size={20}/> Aggiungi Inserto</button></div>}</>)}
         <WidgetLayer widgets={data.widgets || []} setWidgets={setWidgets} selectedId={selectedWidgetId} setSelectedId={setSelectedWidgetId} />
       </div>
@@ -191,6 +235,9 @@ const App: React.FC = () => {
       {showResetDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowResetDialog(false)}><div className="bg-white text-stone-900 p-6 rounded-xl shadow-2xl max-w-md w-full border-2 border-red-500" onClick={e=>e.stopPropagation()}><h3 className="text-lg font-bold uppercase mb-4 flex items-center gap-2 text-red-600"><PlusCircle size={24}/> Nuovo Progetto?</h3><div className="flex justify-end gap-3"><button onClick={()=>setShowResetDialog(false)} className="px-4 py-2 text-stone-500 font-bold text-xs uppercase hover:bg-stone-100 rounded">Annulla</button><button onClick={handleConfirmReset} className="px-6 py-2 bg-red-600 text-white font-bold text-xs uppercase rounded hover:bg-red-700 shadow-lg">Conferma</button></div></div></div>}
       {showEmailDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowEmailDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-md w-full border-2 border-stone-800" onClick={e=>e.stopPropagation()}><div className="flex items-center justify-between mb-6 border-b pb-4"><h3 className="text-xl font-bold uppercase flex items-center gap-2"><Mail size={24}/> Email</h3><button onClick={()=>setShowEmailDialog(false)}><X size={24}/></button></div><div className="space-y-2"><button onClick={()=>{const s=encodeURIComponent(`Giornale: ${data.publicationName}`);const b=encodeURIComponent("Allega PDF");window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`,'_blank');setShowEmailDialog(false)}} className="w-full bg-red-600 hover:bg-red-700 text-white p-3 font-bold uppercase rounded mb-2 flex items-center justify-center gap-2 shadow-md">GMAIL</button><button onClick={()=>{window.location.href=`mailto:?subject=${encodeURIComponent(data.publicationName)}&body=${encodeURIComponent("Allega PDF")}`;setShowEmailDialog(false)}} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 font-bold uppercase rounded flex items-center justify-center gap-2 shadow-md">OUTLOOK</button></div></div></div>}
       {showHelpDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowHelpDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-lg w-full border-4 border-stone-800 relative" onClick={e=>e.stopPropagation()}><button onClick={()=>setShowHelpDialog(false)} className="absolute top-4 right-4 hover:bg-red-100 rounded-full p-1 text-red-500"><X size={24}/></button><h3 className="text-2xl font-black uppercase mb-6 flex items-center gap-2 border-b pb-4"><HelpCircle size={32}/> Guida</h3><div className="mt-8 text-center"><button onClick={()=>setShowHelpDialog(false)} className="bg-stone-900 text-white px-8 py-3 rounded-lg font-bold uppercase hover:scale-105 transition-transform">Ho Capito!</button></div></div></div>}
+      
+      {/* PANNNELLO STAMPA (VISIBILE SOLO QUANDO ATTIVATO) */}
+      {showPrintDialog && <PrintDialog onClose={() => setShowPrintDialog(false)} />}
     </div>
   );
 };
