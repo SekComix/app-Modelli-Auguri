@@ -15,7 +15,7 @@ export interface ArticleData {
   author: string;
   content: string;
   imageUrl?: string;
-  imagePrompt?: string; // For AI generation context
+  imagePrompt?: string; 
 }
 
 export type BlockType = 'headline' | 'paragraph' | 'image';
@@ -23,12 +23,11 @@ export type BlockType = 'headline' | 'paragraph' | 'image';
 export interface ContentBlock {
   id: string;
   type: BlockType;
-  content: string; // Text content or Image URL
-  aiContext?: string; // For regeneration
-  // New layout properties
-  cols?: 1 | 2 | 3; // Number of text columns
-  style?: 'standard' | 'box' | 'quote'; // Visual style
-  height?: number; // Custom height in pixels for images
+  content: string; 
+  aiContext?: string; 
+  cols?: 1 | 2 | 3; 
+  style?: 'standard' | 'box' | 'quote'; 
+  height?: number; 
 }
 
 export interface ExtraSpread {
@@ -60,8 +59,8 @@ export enum FormatType {
 }
 
 export interface EventConfig {
-  heroName1: string; // Festeggiato, Sposo, Laureando
-  heroName2?: string; // Sposa (opzionale)
+  heroName1: string; 
+  heroName2?: string; 
   gender: 'M' | 'F' | 'PLURAL';
   date: string;
   location?: string;
@@ -69,14 +68,13 @@ export interface EventConfig {
   wishesFrom?: string;
 }
 
-// --- NEW WIDGET SYSTEM TYPES (TASK 1 + TASK 2 QR) ---
 export type WidgetType = 'mascot' | 'bubble' | 'sticker' | 'text' | 'qrcode';
 
 export interface WidgetData {
   id: string;
   type: WidgetType;
-  content: string; // SVG content, Image URL, Text, or QR Link
-  text?: string; // Specific text for bubbles/text widgets
+  content: string; 
+  text?: string; 
   style: {
     x: number;
     y: number;
@@ -100,18 +98,12 @@ export interface NewspaperData {
   issueNumber: string;
   price: string;
   articles: Record<string, ArticleData>;
-  // Standard fixed pages
   frontPageBlocks: ContentBlock[];
   backPageBlocks: ContentBlock[];
   sidebarBlocks: ContentBlock[];
   indexContent: string;
-  // Dynamic middle pages
   extraSpreads: ExtraSpread[];
-  // Customization
-  customBgColor?: string; // Only for digital theme
-  // Event Config
+  customBgColor?: string; 
   eventConfig: EventConfig;
-  // Widgets Layer (Task 1)
   widgets: WidgetData[];
 }
-
