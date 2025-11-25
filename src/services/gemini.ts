@@ -1,12 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Recupera la chiave API (gestisce sia Vite che process.env)
-const API_KEY = (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) || process.env.GEMINI_API_KEY || "";
+// CORREZIONE QUI: Aggiunto "as any" per zittire l'errore TypeScript su .env
+const API_KEY = ((import.meta as any).env && (import.meta as any).env.VITE_GEMINI_API_KEY) || (process as any).env?.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 // --- FUNZIONI DI SUPPORTO ---
 
-// 1. Generazione Testo (Articoli)
 export const generateArticleContent = async (prompt: string, context: string): Promise<string> => {
   if (!API_KEY) return "⚠️ Chiave API mancante. Inseriscila in .env o GitHub Secrets.";
   
@@ -23,7 +22,6 @@ export const generateArticleContent = async (prompt: string, context: string): P
   }
 };
 
-// 2. Contesto Storico (Task automatico)
 export const generateHistoricalContext = async (year: number, lang: string = 'Italiano'): Promise<{ summary: string, facts: string }> => {
   if (!API_KEY) return { summary: "Dati non disponibili", facts: "Nessun dato" };
 
@@ -36,8 +34,6 @@ export const generateHistoricalContext = async (year: number, lang: string = 'It
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    
-    // Pulizia base del JSON
     const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(jsonStr);
   } catch (error) {
@@ -48,35 +44,27 @@ export const generateHistoricalContext = async (year: number, lang: string = 'It
   }
 };
 
-// 3. Analisi Immagine (Da immagine a testo)
 export const generateTextFromMedia = async (imageUrl: string): Promise<{ headline: string, body: string }> => {
-  // Nota: Questa funzione richiederebbe il modello gemini-pro-vision e la conversione base64.
-  // Per ora restituiamo un placeholder per evitare errori di compilazione se non si ha l'immagine raw.
   return {
     headline: "Analisi Immagine",
     body: "L'intelligenza artificiale ha analizzato questa foto e sembra ritrarre un momento speciale..."
   };
 };
 
-// --- FUNZIONI PLACEHOLDER / MOCK (Per evitare errori di compilazione) ---
-// Queste funzioni servono perché App.tsx le chiama, ma Gemini Base non genera immagini/audio nativamente
-// In futuro potremo collegarle a servizi esterni (DALL-E, ElevenLabs, ecc.)
-
 export const generateNewspaperImage = async (prompt: string, refImage?: string): Promise<string> => {
-  // Restituisce un'immagine placeholder "Vintage" da LoremFlickr o simile
   const encoded = encodeURIComponent(prompt);
   return `https://loremflickr.com/800/600/vintage,newspaper,${encoded}?lock=${Date.now()}`;
 };
 
 export const generateNewspaperVideo = async (prompt: string): Promise<string> => {
-  return ""; // Video non supportato nel piano base
+  return ""; 
 };
 
 export const generateSpeech = async (text: string): Promise<ArrayBuffer | null> => {
   console.log("TTS richiesto per:", text);
-  return null; // Audio non supportato nel piano base
+  return null; 
 };
 
 export const playRawAudio = async (audioData: ArrayBuffer, context: AudioContext) => {
-  return null; // Audio non supportato
+  return null; 
 };
