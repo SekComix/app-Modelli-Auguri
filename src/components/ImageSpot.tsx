@@ -37,14 +37,16 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isVideo = src?.startsWith('data:video') || src?.startsWith('blob:') || src?.endsWith('.mp4') || src?.endsWith('.webm');
 
-  // LOGICA DRAG HANDLE (Corretta e Robusta)
+  // LOGICA DRAG HANDLE POTENZIATA
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing || !containerRef.current || !onHeightChange) return;
       e.preventDefault();
       const rect = containerRef.current.getBoundingClientRect();
       const newHeight = e.clientY - rect.top;
-      if (newHeight > 100) {
+      
+      // Limite minimo 100px, massimo 2000px (per evitare foto infinite)
+      if (newHeight > 100 && newHeight < 2000) {
         onHeightChange(newHeight);
       }
     };
@@ -165,15 +167,18 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
           </div>
         </div>
         
-        {/* MANIGLIA DI RIDIMENSIONAMENTO (Solo se abilitata) */}
+        {/* MANIGLIA VISIBILE SULL'INTERA IMMAGINE (GROUP-HOVER) */}
         {enableResizing && (
             <div 
-                onMouseDown={() => setIsResizing(true)}
-                className="absolute bottom-0 left-0 right-0 h-6 bg-transparent hover:bg-blue-500/20 cursor-row-resize flex items-center justify-center z-40 group/handle opacity-0 hover:opacity-100 transition-opacity"
-                title="Trascina per ridimensionare l'altezza"
+                onMouseDown={(e) => { e.stopPropagation(); setIsResizing(true); }}
+                className="absolute bottom-0 left-0 right-0 h-8 z-40 cursor-row-resize flex items-end justify-center group/handle opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                title="Trascina per ridimensionare"
             >
-                <div className="w-12 h-1.5 bg-stone-400/80 rounded-full group-hover/handle:bg-blue-500 flex items-center justify-center shadow-sm">
-                   <GripHorizontal size={12} className="text-white"/>
+                {/* Barra visiva blu quando passi sopra */}
+                <div className="w-full h-4 bg-gradient-to-t from-blue-500/50 to-transparent hover:from-blue-600/80 flex items-center justify-center">
+                   <div className="w-12 h-1.5 bg-white rounded-full shadow-sm flex items-center justify-center">
+                        <GripHorizontal size={12} className="text-blue-500"/>
+                   </div>
                 </div>
             </div>
         )}
