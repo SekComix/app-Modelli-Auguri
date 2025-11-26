@@ -34,13 +34,20 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isVideo = src?.startsWith('data:video') || src?.startsWith('blob:') || src?.endsWith('.mp4') || src?.endsWith('.webm');
 
+  // --- LOGICA ALTEZZA DINAMICA MA CONTROLLATA ---
+  // Se c'è un'altezza personalizzata (da maniglia), usala.
+  // Altrimenti usa un default o auto-adattamento limitato.
+  const finalHeight = customHeight ? `${customHeight}px` : (autoHeight ? 'auto' : '20rem'); 
+  const heightStyle = { height: finalHeight, minHeight: '150px' };
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing || !containerRef.current || !onHeightChange) return;
       e.preventDefault();
       const rect = containerRef.current.getBoundingClientRect();
       const newHeight = e.clientY - rect.top;
-      if (newHeight > 100 && newHeight < 2000) onHeightChange(newHeight);
+      // Limiti per evitare box invisibili o giganti
+      if (newHeight > 100 && newHeight < 1500) onHeightChange(newHeight);
     };
     const handleMouseUp = () => {
       setIsResizing(false); document.body.style.cursor = 'default'; document.body.style.userSelect = '';
@@ -94,21 +101,33 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
 
   const activeFilters = filters !== undefined ? filters : "grayscale contrast-125 sepia-[.15] brightness-90";
   const imageFilterClass = useOriginalColor ? "" : activeFilters;
-  const heightStyle = customHeight ? { height: `${customHeight}px` } : {};
-  const containerClass = autoHeight && !customHeight ? (src ? `w-full relative group bg-neutral-200 flex items-center justify-center ${className}` : `w-full min-h-[14rem] relative group bg-neutral-200 flex items-center justify-center ${className}`) : `relative group bg-neutral-200 overflow-hidden flex items-center justify-center ${className}`;
+  
+  // Stili contenitore: RELATIVE per contenere l'immagine ABSOLUTE
+  const containerClass = `relative group bg-neutral-200 overflow-hidden flex items-center justify-center w-full ${className}`;
 
   return (
     <>
       <div ref={containerRef} className={containerClass} style={heightStyle}>
-        {src ? ( isVideo ? <video ref={videoRef} src={src} autoPlay loop muted={isMuted} playsInline className={autoHeight && !customHeight ? `w-full h-auto block ${imageFilterClass}` : `w-full h-full object-cover ${imageFilterClass}`} /> : <img ref={imgRef} src={src} alt="Visual" crossOrigin="anonymous" className={autoHeight && !customHeight ? `w-full h-auto block ${imageFilterClass}` : `w-full h-full object-cover ${imageFilterClass}`} /> ) : ( <div className={`text-stone-400 flex flex-col items-center absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-30`}><ImageIcon size={48} /><span className="text-xs font-bold mt-2">AGGIUNGI IMMAGINE</span></div> )}
+        {src ? ( 
+            isVideo ? (
+                <video ref={videoRef} src={src} autoPlay loop muted={isMuted} playsInline className={`w-full h-full object-cover absolute inset-0 ${imageFilterClass}`} />
+            ) : (
+                // QUI C'È LA MAGIA: object-cover + absolute inset-0
+                // Significa: "Riempi tutto il box, taglia l'eccesso, non deformarti"
+                <img ref={imgRef} src={src} alt="Visual" crossOrigin="anonymous" className={`w-full h-full object-cover absolute inset-0 ${imageFilterClass}`} /> 
+            ) 
+        ) : ( 
+            <div className={`text-stone-400 flex flex-col items-center justify-center absolute inset-0 pointer-events-none opacity-30`}>
+                <ImageIcon size={48} />
+                <span className="text-xs font-bold mt-2">AGGIUNGI IMMAGINE</span>
+            </div> 
+        )}
         
-        {/* OVERLAY DI CONTROLLO */}
+        {/* OVERLAY COMANDI */}
         <div className={src ? "absolute inset-0 bg-stone-900/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-4 z-20 p-4 overlay-controls" : "absolute inset-0 bg-stone-200/50 flex flex-col items-center justify-center gap-4 z-20 p-4"}>
           <div className="flex gap-3">
             <button onClick={handleAutoGenerate} disabled={isLoading} className="flex flex-col items-center justify-center w-14 h-14 bg-stone-900/90 hover:bg-black text-white rounded-lg shadow-md border border-stone-700 transition-all transform hover:scale-105 cursor-pointer z-30"><Zap size={18} className={isLoading ? "animate-pulse text-yellow-400" : "text-yellow-400"} /><span className="text-[8px] font-bold uppercase mt-1 tracking-wider text-stone-300">Auto</span></button>
             <label className="flex flex-col items-center justify-center w-14 h-14 bg-stone-900/90 hover:bg-black text-white rounded-lg shadow-md border border-stone-700 transition-all transform hover:scale-105 cursor-pointer z-30" onClick={(e) => e.stopPropagation()}><Upload size={18} className="text-blue-400" /><span className="text-[8px] font-bold uppercase mt-1 tracking-wider text-stone-300">Upload</span><input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} onClick={(e) => { (e.currentTarget as HTMLInputElement).value = '' }} /></label>
-            
-            {/* NUOVO TASTO RIMUOVI */}
             {src && (
                 <button onClick={(e) => { e.stopPropagation(); onChange(''); }} className="flex flex-col items-center justify-center w-14 h-14 bg-red-900/90 hover:bg-red-800 text-white rounded-lg shadow-md border border-red-700 transition-all transform hover:scale-105 cursor-pointer z-30">
                     <Trash2 size={18} className="text-white" />
@@ -121,8 +140,13 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
           </div>
         </div>
         
+        {/* MANIGLIA RIDIMENSIONAMENTO */}
         {enableResizing && (
-            <div onMouseDown={(e) => { e.stopPropagation(); setIsResizing(true); }} className="absolute bottom-0 left-0 right-0 h-8 z-40 cursor-row-resize flex items-end justify-center group/handle opacity-0 group-hover:opacity-100 transition-opacity duration-200"><div className="w-full h-4 bg-gradient-to-t from-blue-500/50 to-transparent hover:from-blue-600/80 flex items-center justify-center"><div className="w-12 h-1.5 bg-white rounded-full shadow-sm flex items-center justify-center"><GripHorizontal size={12} className="text-blue-500"/></div></div></div>
+            <div onMouseDown={(e) => { e.stopPropagation(); setIsResizing(true); }} className="absolute bottom-0 left-0 right-0 h-8 z-40 cursor-row-resize flex items-end justify-center group/handle opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="w-full h-4 bg-gradient-to-t from-blue-500/50 to-transparent hover:from-blue-600/80 flex items-center justify-center">
+                    <div className="w-12 h-1.5 bg-white rounded-full shadow-sm flex items-center justify-center"><GripHorizontal size={12} className="text-blue-500"/></div>
+                </div>
+            </div>
         )}
         
         {isLoading && (<div className="absolute inset-0 bg-stone-900/95 flex items-center justify-center z-50 text-center p-4 animate-fade-in-up"><div><Zap className="animate-bounce text-yellow-400 mx-auto mb-3" size={40} /><p className="text-sm font-bold text-white uppercase tracking-wider animate-pulse">{loadingStep}</p></div></div>)}
