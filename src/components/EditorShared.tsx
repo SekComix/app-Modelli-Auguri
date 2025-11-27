@@ -1,5 +1,5 @@
 import React from 'react';
-import { Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle } from 'lucide-react';
+import { Type, Image as ImageIcon, AlignLeft, Trash2 } from 'lucide-react';
 import { EditableText } from './EditableText';
 import { ImageSpot } from './ImageSpot';
 import { ContentBlock, BlockType, ThemeConfig } from '../types';
@@ -16,6 +16,7 @@ interface AddBlockProps {
     onAdd: (type: BlockType) => void;
     isSidebar?: boolean;
     isPreview: boolean;
+    themeId?: string; // <--- ECCO LA RIGA CHE MANCAVA E CAUSAVA L'ERRORE
 }
 
 export const AddBlockControls: React.FC<AddBlockProps> = ({ onAdd, isSidebar, isPreview }) => {
