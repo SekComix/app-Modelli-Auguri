@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, Zap, PenLine, Image as ImageIcon, Droplet, Film, Download, X, Plus, Volume2, VolumeX, FileText, GripHorizontal, Check, Trash2 } from 'lucide-react';
+import { Upload, Zap, PenLine, Image as ImageIcon, Droplet, Film, Download, X, GripHorizontal, Check, Trash2, Volume2, VolumeX, FileText } from 'lucide-react';
 import { generateNewspaperImage, generateNewspaperVideo, generateTextFromMedia } from '../services/gemini';
 
 interface ImageSpotProps {
@@ -23,10 +23,9 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
   const [loadingStep, setLoadingStep] = useState<string>('');
   const [useOriginalColor, setUseOriginalColor] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
+  
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [promptMode, setPromptMode] = useState<'image' | 'video'>('image');
   const [currentPrompt, setCurrentPrompt] = useState('');
@@ -37,9 +36,8 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isVideo = src?.startsWith('data:video') || src?.startsWith('blob:') || src?.endsWith('.mp4') || src?.endsWith('.webm');
 
-  // ALTEZZA CALCOLATA: Se c'è customHeight usa quella, altrimenti un default fisso (300px)
-  // Questo impedisce che le foto nuove nascano con altezza 0 o infinita.
-  const calculatedHeight = customHeight ? `${customHeight}px` : '300px';
+  // ALTEZZA: Priorità a customHeight, poi default 300px.
+  const heightValue = customHeight ? `${customHeight}px` : '300px';
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -47,10 +45,11 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
       e.preventDefault();
       const rect = containerRef.current.getBoundingClientRect();
       const newHeight = e.clientY - rect.top;
-      // Minimo 100px, Massimo 1500px
-      if (newHeight > 100 && newHeight < 1500) onHeightChange(newHeight);
+      if (newHeight > 50 && newHeight < 1500) onHeightChange(newHeight);
     };
-    const handleMouseUp = () => { setIsResizing(false); document.body.style.cursor = 'default'; document.body.style.userSelect = ''; };
+    const handleMouseUp = () => {
+      setIsResizing(false); document.body.style.cursor = 'default'; document.body.style.userSelect = '';
+    };
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove); document.addEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = 'row-resize'; document.body.style.userSelect = 'none';
@@ -66,26 +65,33 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
   const handleDownload = async (e: React.MouseEvent) => { e.stopPropagation(); if (!src) return; const link = document.createElement('a'); link.href = src; link.download = `media-${Date.now()}`; link.click(); };
   const handleAutoGenerate = async () => { setIsLoading(true); setLoadingStep('Creazione...'); try { await new Promise(r => setTimeout(r, 800)); const img = await generateNewspaperImage(context); onChange(img); setUseOriginalColor(false); } catch (e) { alert("Errore"); } finally { setIsLoading(false); setLoadingStep(''); } };
   const handleAnalyzeImage = async () => { if (!src || !onAnalyze) return; setIsLoading(true); setLoadingStep("Analisi..."); try { const { headline, body } = await generateTextFromMedia(src); onAnalyze(headline, body); } catch (e) { alert(e); } finally { setIsLoading(false); } };
-  const openPromptDialog = (mode: 'image' | 'video') => { setCurrentPrompt(context); setPromptMode(mode); setReferenceImage(null); setShowPromptDialog(true); };
+  const openPromptDialog = (mode: 'image' | 'video') => { setCurrentPrompt(context); setPromptMode(mode); setShowPromptDialog(true); };
   const handleConfirmPrompt = async () => { setShowPromptDialog(false); setIsLoading(true); try { if (promptMode==='image') { const img = await generateNewspaperImage(currentPrompt, referenceImage || undefined); onChange(img); } else { const vid = await generateNewspaperVideo(currentPrompt); if(vid) onChange(vid); } } catch(e){alert("Errore");} finally{setIsLoading(false);} };
 
   const activeFilters = filters || "grayscale contrast-125 sepia-[.15] brightness-90";
   const imageFilterClass = useOriginalColor ? "" : activeFilters;
   
+  // CAMBIAMENTO CHIAVE: object-contain invece di object-cover
+  // Questo garantisce che l'immagine si veda TUTTA all'interno del box.
+  const contentStyle = `absolute inset-0 w-full h-full object-contain ${imageFilterClass}`;
+
   return (
     <>
-      <div ref={containerRef} className={`relative group bg-stone-200 overflow-hidden w-full ${className}`} style={{ height: calculatedHeight }}>
+      {/* Il BG è trasparente o grigio chiaro per far vedere i bordi del box */}
+      <div ref={containerRef} className={`relative group bg-stone-100 overflow-hidden w-full ${className}`} style={{ height: heightValue, minHeight: '100px' }}>
         {src ? ( 
             isVideo ? (
-                <video ref={videoRef} src={src} autoPlay loop muted={isMuted} playsInline className={`absolute inset-0 w-full h-full object-cover ${imageFilterClass}`} />
+                <video ref={videoRef} src={src} autoPlay loop muted={isMuted} playsInline className={contentStyle} />
             ) : (
-                // object-cover: La chiave magica. Riempie il box tagliando i bordi in eccesso.
-                <img ref={imgRef} src={src} alt="Visual" className={`absolute inset-0 w-full h-full object-cover ${imageFilterClass}`} crossOrigin="anonymous" /> 
+                <img ref={imgRef} src={src} alt="Visual" className={contentStyle} crossOrigin="anonymous" /> 
             ) 
         ) : ( 
-            <div className={`text-stone-400 flex flex-col items-center justify-center h-full opacity-50 pointer-events-none`}><ImageIcon size={48} /><span className="text-[10px] font-bold mt-2">CARICA MEDIA</span></div> 
+            <div className={`text-stone-400 flex flex-col items-center justify-center h-full opacity-50 pointer-events-none`}>
+                <ImageIcon size={48} /><span className="text-[10px] font-bold mt-2">CARICA MEDIA</span>
+            </div> 
         )}
         
+        {/* OVERLAY COMANDI */}
         <div className={src ? "absolute inset-0 bg-stone-900/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 z-20 p-2" : "absolute inset-0 flex flex-col items-center justify-center gap-3 z-20 p-2"}>
           <div className="flex gap-2">
             <button onClick={handleAutoGenerate} disabled={isLoading} className="w-12 h-12 bg-stone-900/90 text-white rounded-lg border border-stone-700 flex flex-col items-center justify-center"><Zap size={16} className="text-yellow-400"/><span className="text-[7px] font-bold mt-1">AI</span></button>
