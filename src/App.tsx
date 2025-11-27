@@ -3,12 +3,14 @@ import { ArticleType, NewspaperData, ContentBlock, BlockType, ThemeId, ExtraSpre
 import { EditableText } from './components/EditableText';
 import { ImageSpot } from './components/ImageSpot';
 import { WidgetLibrary, WidgetLayer } from './components/StrilloneWidget';
+// NUOVO IMPORT: Importiamo i componenti condivisi
+import { CrosswordGrid, AddBlockControls, RenderBlocks } from './components/EditorShared';
 import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone } from 'lucide-react';
 import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { THEMES, INITIAL_ARTICLES, INITIAL_DATA } from './data';
 
-// --- DIALOG STAMPA ---
+// --- COMPONENTE PANNELLO STAMPA ---
 const PrintDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handlePrint = () => { window.print(); onClose(); };
   return (
@@ -17,47 +19,16 @@ const PrintDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <Printer size={48} className="mx-auto text-stone-800 mb-4" />
         <h2 className="text-2xl font-black font-oswald uppercase mb-2">Centro Stampa</h2>
         <div className="grid grid-cols-2 gap-4 mb-6">
-            <button onClick={handlePrint} className="border-2 border-stone-200 hover:border-blue-600 p-4 rounded-xl font-bold hover:bg-blue-50">A4 Casa</button>
-            <button onClick={handlePrint} className="border-2 border-stone-200 hover:border-purple-600 p-4 rounded-xl font-bold hover:bg-purple-50">A3 Poster</button>
+          <button onClick={handlePrint} className="border-2 border-stone-200 hover:border-blue-600 rounded-xl p-4 hover:bg-blue-50 font-bold">Stampa A4</button>
+          <button onClick={handlePrint} className="border-2 border-stone-200 hover:border-purple-600 rounded-xl p-4 hover:bg-purple-50 font-bold">Stampa A3</button>
         </div>
-        <button onClick={onClose} className="text-xs font-bold uppercase text-stone-400 hover:text-red-500">Annulla</button>
+        <button onClick={onClose} className="text-stone-400 hover:text-red-500 font-bold text-xs uppercase">Annulla</button>
       </div>
     </div>
   );
 };
 
-// --- TOOLBAR AGGIUNTA BLOCCHI ---
-const AddBlockControls: React.FC<any> = ({ onAdd, isSidebar, isPreview }) => {
-  if(isPreview) return null;
-  return (
-    <div className={`border-2 border-dashed border-stone-400 bg-white/40 hover:bg-white/80 p-2 flex ${isSidebar?'flex-col items-stretch':'justify-center'} gap-2 opacity-70 hover:opacity-100 transition-all print:hidden rounded-lg mt-4 shadow-sm`}>
-      <button onClick={()=>onAdd('headline')} className="flex items-center justify-center gap-1 text-xs font-bold uppercase py-1.5 rounded transition-colors text-stone-800 hover:bg-stone-200/50"><Type size={16}/>{isSidebar?'Titolo':'Agg. Titolo'}</button>
-      <button onClick={()=>onAdd('paragraph')} className="flex items-center justify-center gap-1 text-xs font-bold uppercase py-1.5 rounded transition-colors text-stone-800 hover:bg-stone-200/50"><AlignLeft size={16}/>{isSidebar?'Testo':'Agg. Testo'}</button>
-      <button onClick={()=>onAdd('image')} className="flex items-center justify-center gap-1 text-xs font-bold uppercase py-1.5 rounded transition-colors text-stone-800 hover:bg-stone-200/50"><ImageIcon size={16}/>{isSidebar?'Foto':'Agg. Foto'}</button>
-    </div>
-  );
-};
-
-// --- RENDER BLOCKS ---
-const RenderBlocks: React.FC<any> = ({ blocks, onUpdate, onRemove, theme, isSidebar, isPreview }) => (
-  <>
-    {blocks.map((block:any) => (
-      <div key={block.id} className="group relative mb-4 animate-fade-in-up">
-        {!isPreview && (
-          <button onClick={(e) => { e.stopPropagation(); onRemove(block.id); }} className="absolute -top-3 -right-3 p-2 bg-white border-2 border-red-100 text-red-500 hover:text-white hover:bg-red-500 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-50 cursor-pointer"><Trash2 size={14}/></button>
-        )}
-        {block.type === 'headline' && (<EditableText value={block.content} onChange={(v:string)=>onUpdate(block.id, v)} className={`${theme.headlineFont} ${isSidebar?'text-xl':'text-3xl'} font-bold leading-tight my-2`} aiEnabled={!isPreview} aiContext="Titolo" mode="headline"/>)}
-        {block.type === 'paragraph' && (<div className={`${isSidebar?'columns-1':'columns-2 gap-6'} ${theme.bodyFont} text-sm text-justify leading-relaxed`}><EditableText value={block.content} onChange={(v:string)=>onUpdate(block.id, v)} multiline={true} aiEnabled={!isPreview} aiContext="Testo" mode="body"/></div>)}
-        {block.type === 'image' && (
-            // NOTA: Qui passiamo customHeight e onHeightChange correttamente
-            <ImageSpot src={block.content} onChange={(v:string)=>onUpdate(block.id, v)} className={`w-full my-4 ${theme.borderClass} border shadow-sm`} filters={theme.imageFilter} enableResizing={!isPreview} customHeight={block.height} onHeightChange={(h: number) => onUpdate(block.id, block.content, h)} />
-        )}
-      </div>
-    ))}
-  </>
-);
-
-// --- APP ---
+// --- APP PRINCIPALE ---
 const App: React.FC = () => {
   const [data, setData] = useState<NewspaperData>(() => {
       const saved = localStorage.getItem('newspaper_data');
@@ -66,7 +37,6 @@ const App: React.FC = () => {
   });
   const [appConfig, setAppConfig] = useState(() => { const saved = localStorage.getItem('app_config'); return saved ? JSON.parse(saved) : { title: 'THE SEK CREATOR AND DESIGNER', logo: '' }; });
   
-  // UI STATES
   const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
@@ -88,11 +58,18 @@ const App: React.FC = () => {
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD;
 
-  // --- LOGICHE ---
   const generateContentForEvent = (type: EventType, config: any): { pubName: string, articles: Record<string, ArticleData>, index: string, extraPages: ExtraSpread[] } => {
-    let pubName = "La Cronaca Quotidiana"; let articles = JSON.parse(JSON.stringify(INITIAL_ARTICLES)); let index = "- Esteri .......... Pag. 2\n- Economia ........ Pag. 4\n- Cruciverba ...... Pag. 11"; let extraPages: ExtraSpread[] = []; const name = config.heroName1 || "Protagonista"; const genderSuffix = config.gender === 'F' ? 'a' : 'o'; let age = 0; if (config.date) { const birthYear = new Date(config.date).getFullYear(); const currentYear = new Date().getFullYear(); age = currentYear - birthYear; }
+    let pubName = "La Cronaca Quotidiana"; let articles = JSON.parse(JSON.stringify(INITIAL_ARTICLES)); let index = "- Esteri .......... Pag. 2\n- Economia ........ Pag. 4\n- Cruciverba ...... Pag. 11"; let extraPages: ExtraSpread[] = []; 
+    const name = config.heroName1 || "Protagonista"; const genderSuffix = config.gender === 'F' ? 'a' : 'o'; 
+    let age = 0; if (config.date) { const birthYear = new Date(config.date).getFullYear(); const currentYear = new Date().getFullYear(); age = currentYear - birthYear; }
+
     switch (type) {
-        case EventType.BIRTHDAY: pubName = `Il Corriere di ${name}`; articles['lead'].headline = `BUON COMPLEANNO ${name.toUpperCase()}!`; articles['lead'].subheadline = `Grande festa per i suoi splendidi ${age > 0 ? age : 'X'} anni`; articles['lead'].content = `Oggi è un giorno speciale! ${name} festeggia un traguardo importante...`; break;
+        case EventType.BIRTHDAY:
+            pubName = `Il Corriere di ${name}`;
+            articles['lead'].headline = `BUON COMPLEANNO ${name.toUpperCase()}!`;
+            articles['lead'].subheadline = `Grande festa per i suoi splendidi ${age > 0 ? age : 'X'} anni`;
+            articles['lead'].content = `Oggi è un giorno speciale! ${name} festeggia un traguardo importante...`;
+            break;
         case EventType.WEDDING: pubName = `L'Eco degli Sposi`; articles['lead'].headline = `OGGI SPOSI!`; break;
     }
     return { pubName, articles, index, extraPages };
@@ -100,24 +77,13 @@ const App: React.FC = () => {
 
   const handleApplyEventConfig = async () => { setIsUpdatingEvent(true); try { const { eventType, eventConfig } = data; const content = generateContentForEvent(eventType, eventConfig); setData(prev => ({ ...prev, publicationName: content.pubName, articles: content.articles, indexContent: content.index, extraSpreads: content.extraPages })); setShowConfigPanel(false); } catch (e) { console.error(e); } finally { setIsUpdatingEvent(false); } };
   
-  // FIX: Inizializza height a 300 per le immagini nuove
-  const addBlock = (section: 'front'|'back'|'sidebar', type: BlockType) => { 
-      const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type === 'image' ? '' : 'Nuovo...', height: type === 'image' ? 300 : undefined }; 
-      const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: [...prev[listKey], newBlock] })); 
-  };
-  
-  // FIX: Gestisce l'aggiornamento dell'altezza nel blocco
-  const updateBlock = (section: 'front'|'back'|'sidebar', id: string, value: string, height?: number) => { 
-      const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; 
-      setData(prev => ({ ...prev, [listKey]: prev[listKey].map(b => b.id === id ? { ...b, content: value, height: height !== undefined ? height : b.height } : b) })); 
-  };
-  
+  const addBlock = (section: 'front'|'back'|'sidebar', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type === 'image' ? '' : 'Nuovo...', height: type === 'image' ? 300 : undefined }; const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: [...prev[listKey], newBlock] })); };
+  const updateBlock = (section: 'front'|'back'|'sidebar', id: string, value: string, height?: number) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].map(b => b.id === id ? { ...b, content: value, height: height !== undefined ? height : b.height } : b) })); };
   const removeBlock = (section: 'front'|'back'|'sidebar', id: string) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].filter(b => b.id !== id) })); };
   const addSpread = () => { const startPage = 2 + (data.extraSpreads.length * 2); const newSpread: ExtraSpread = { id: `spread-${Date.now()}`, pageNumberLeft: startPage, pageNumberRight: startPage + 1, leftBlocks: [], rightBlocks: [] }; setData(prev => ({ ...prev, extraSpreads: [...prev.extraSpreads, newSpread] })); };
   const addBlockToSpread = (sid: string, side: 'left'|'right', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type==='image'?'':'Nuovo...', height: type === 'image' ? 300 : undefined }; setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: [...(side==='left'?s.leftBlocks:s.rightBlocks), newBlock] } : s) })); };
   const updateBlockInSpread = (sid: string, side: 'left'|'right', bid: string, val: string, height?: number) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].map(b => b.id===bid ? {...b, content: val, height: height !== undefined ? height : b.height } : b) } : s) })); };
   const removeBlockInSpread = (sid: string, side: 'left'|'right', bid: string) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].filter(b => b.id !== bid) } : s) })); };
-  
   const handleAddWidget = (type: WidgetType, content: string, subType?: string) => { const newWidget: WidgetData = { id: `widget-${Date.now()}`, type, content, text: type === 'bubble' ? 'Clicca...' : type === 'text' ? 'TESTO' : undefined, style: { x: window.innerWidth/2-100, y: window.scrollY+300, width: 200, height: 200, rotation: 0, zIndex: 50, fontSize: 24, color: '#000000', fontFamily: 'Chomsky', flipX: false } }; if (type === 'sticker' && !subType) { newWidget.style.width = 100; newWidget.style.height = 100; } setData(prev => ({ ...prev, widgets: [...(prev.widgets || []), newWidget] })); setSelectedWidgetId(newWidget.id); setShowWidgetLibrary(false); };
   const setWidgets = (action: React.SetStateAction<WidgetData[]>) => { setData(prev => { const newWidgets = typeof action === 'function' ? action(prev.widgets || []) : action; return { ...prev, widgets: newWidgets }; }); };
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); reader.readAsDataURL(file); } };
@@ -137,7 +103,7 @@ const App: React.FC = () => {
   const renderFrontPage = (wrapperClass: string) => (
     <div className={`${wrapperClass} ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative ${currentTheme.borderClass} ${!isDigital && !isPoster && !isPreviewMode ? 'border-r' : ''} print:w-full`} style={customPageStyle}>
       {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilter)" /></svg></div>)}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50" title="Limite di stampa sicuro"></div>
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50"></div>
       <header className={`${currentTheme.borderClass} border-b-4 pb-4 mb-6 text-center relative z-30`}>
          {isPoster && <div className="text-xs uppercase font-bold mb-2 tracking-widest text-stone-500">Edizione Speciale Poster</div>}
          <EditableText value={data.publicationName} onChange={(v) => updateMeta('publicationName', v)} className={`${currentTheme.titleFont} ${isPoster ? 'text-8xl lg:text-9xl' : 'text-6xl lg:text-8xl'} leading-tight ${currentTheme.textClass}`} language={currentTheme.language} aiEnabled={!isPreviewMode} aiContext="Nome della testata" mode="headline"/>
