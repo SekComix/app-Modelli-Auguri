@@ -1,19 +1,6 @@
-import { ArticleData, ArticleType, EventType, FormatType, NewspaperData, ThemeId } from './types';
+import { ArticleData, ArticleType, EventType, FormatType, NewspaperData, ThemeId, ThemeConfig } from './types';
 
-export interface ThemeConfig {
-  id: ThemeId;
-  label: string;
-  language: string;
-  locale: string;
-  bgClass: string;
-  textClass: string;
-  borderClass: string;
-  titleFont: string;
-  headlineFont: string;
-  bodyFont: string;
-  imageFilter: string;
-  headerLayout: 'center' | 'left' | 'modern' | 'digital';
-}
+// La definizione di ThemeConfig ora è in types.ts, qui la usiamo solo.
 
 export const THEMES: Record<ThemeId, ThemeConfig> = {
   classic: { id: 'classic', label: 'Classico (B/N)', language: 'Italiano', locale: 'it-IT', bgClass: 'bg-[#fdfbf7]', textClass: 'text-stone-900', borderClass: 'border-black', titleFont: 'font-chomsky', headlineFont: 'font-playfair', bodyFont: 'font-merriweather', imageFilter: 'grayscale contrast-125 sepia-[.15]', headerLayout: 'center' },
