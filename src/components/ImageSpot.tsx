@@ -25,18 +25,15 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [promptMode, setPromptMode] = useState<'image' | 'video'>('image');
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
-  
   const videoRef = useRef<HTMLVideoElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isVideo = src?.startsWith('data:video') || src?.startsWith('blob:') || src?.endsWith('.mp4') || src?.endsWith('.webm');
 
-  // ALTEZZA: Priorità a customHeight, poi default 300px.
   const heightValue = customHeight ? `${customHeight}px` : '300px';
 
   useEffect(() => {
@@ -71,27 +68,23 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
   const activeFilters = filters || "grayscale contrast-125 sepia-[.15] brightness-90";
   const imageFilterClass = useOriginalColor ? "" : activeFilters;
   
-  // CAMBIAMENTO CHIAVE: object-contain invece di object-cover
-  // Questo garantisce che l'immagine si veda TUTTA all'interno del box.
-  const contentStyle = `absolute inset-0 w-full h-full object-contain ${imageFilterClass}`;
-
+  // MODIFICA QUI: bg-transparent invece di bg-stone-200
+  // Così se la foto non riempie, si vede lo sfondo del giornale.
   return (
     <>
-      {/* Il BG è trasparente o grigio chiaro per far vedere i bordi del box */}
-      <div ref={containerRef} className={`relative group bg-stone-100 overflow-hidden w-full ${className}`} style={{ height: heightValue, minHeight: '100px' }}>
+      <div ref={containerRef} className={`relative group bg-transparent overflow-hidden w-full ${className}`} style={{ height: heightValue, minHeight: '100px' }}>
         {src ? ( 
             isVideo ? (
-                <video ref={videoRef} src={src} autoPlay loop muted={isMuted} playsInline className={contentStyle} />
+                <video ref={videoRef} src={src} autoPlay loop muted={isMuted} playsInline className={`absolute inset-0 w-full h-full object-contain ${imageFilterClass}`} />
             ) : (
-                <img ref={imgRef} src={src} alt="Visual" className={contentStyle} crossOrigin="anonymous" /> 
+                <img ref={imgRef} src={src} alt="Visual" className={`absolute inset-0 w-full h-full object-contain ${imageFilterClass}`} crossOrigin="anonymous" /> 
             ) 
         ) : ( 
-            <div className={`text-stone-400 flex flex-col items-center justify-center h-full opacity-50 pointer-events-none`}>
+            <div className={`text-stone-400 flex flex-col items-center justify-center h-full opacity-50 pointer-events-none border-2 border-dashed border-stone-300`}>
                 <ImageIcon size={48} /><span className="text-[10px] font-bold mt-2">CARICA MEDIA</span>
             </div> 
         )}
         
-        {/* OVERLAY COMANDI */}
         <div className={src ? "absolute inset-0 bg-stone-900/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 z-20 p-2" : "absolute inset-0 flex flex-col items-center justify-center gap-3 z-20 p-2"}>
           <div className="flex gap-2">
             <button onClick={handleAutoGenerate} disabled={isLoading} className="w-12 h-12 bg-stone-900/90 text-white rounded-lg border border-stone-700 flex flex-col items-center justify-center"><Zap size={16} className="text-yellow-400"/><span className="text-[7px] font-bold mt-1">AI</span></button>
