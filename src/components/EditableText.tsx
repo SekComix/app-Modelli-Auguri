@@ -17,13 +17,24 @@ interface EditableTextProps {
 
 const FONT_OPTIONS = [
     { label: 'Default', value: '' },
-    { label: 'Giornale Antico (Gotico)', value: 'font-chomsky' },
-    { label: 'Titolo Elegante (Serif)', value: 'font-playfair' },
-    { label: 'Testo Classico (Leggibile)', value: 'font-merriweather' },
+    { label: 'Giornale Antico', value: 'font-chomsky' },
+    { label: 'Titolo Elegante', value: 'font-playfair' },
+    { label: 'Testo Classico', value: 'font-merriweather' },
     { label: 'Moderno (Sans)', value: 'font-roboto' },
     { label: 'Impatto (Forte)', value: 'font-oswald' },
-    { label: 'Macchina da Scrivere', value: 'font-mono' },
+    { label: 'Macchina', value: 'font-mono' },
     { label: 'A Mano', value: 'font-handwriting' }
+];
+
+// Misure predefinite per la tendina (corrispondono a fontSizeMod)
+const SIZE_OPTIONS = [
+    { label: 'Piccolo', value: -4 },
+    { label: 'Normale', value: 0 },
+    { label: 'Medio', value: 8 },
+    { label: 'Grande', value: 16 },
+    { label: 'Titolo', value: 24 },
+    { label: 'Gigante', value: 48 },
+    { label: 'Mega', value: 80 }
 ];
 
 export const EditableText: React.FC<EditableTextProps> = ({ 
@@ -34,18 +45,14 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const [prompt, setPrompt] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   
-  // STATI STILE
   const [isBold, setIsBold] = useState(className.includes('font-bold'));
   const [isItalic, setIsItalic] = useState(className.includes('italic'));
   const [isUnderline, setIsUnderline] = useState(className.includes('underline'));
   const [textAlign, setTextAlign] = useState<'left'|'center'|'right'|'justify'>('left');
+  
   const [textColor, setTextColor] = useState<string>(''); 
   const [fontFamily, setFontFamily] = useState<string>(''); 
   const [fontSizeMod, setFontSizeMod] = useState(0); 
-  
-  // STATO TEMPORANEO PER INPUT NUMERICO
-  // Questo mantiene il valore scritto (es "4") finché non premi Invio
-  const [tempFontSize, setTempFontSize] = useState("0");
 
   const inputRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,11 +61,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
       const foundFont = FONT_OPTIONS.find(f => f.value && className.includes(f.value));
       if (foundFont) setFontFamily(foundFont.value);
   }, [className]);
-
-  // Quando apro l'editor, sincronizzo il numero
-  useEffect(() => {
-      if (isEditing) setTempFontSize(fontSizeMod.toString());
-  }, [isEditing, fontSizeMod]);
 
   const handleSpeak = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -69,13 +71,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
       utterance.onend = () => setIsSpeaking(false);
       window.speechSynthesis.speak(utterance);
       setIsSpeaking(true);
-  };
-
-  // Applica il font solo quando confermo
-  const commitFontSize = () => {
-      const val = parseInt(tempFontSize);
-      if (!isNaN(val)) setFontSizeMod(val);
-      else setTempFontSize(fontSizeMod.toString()); // Ripristina se errato
   };
 
   useEffect(() => {
@@ -93,8 +88,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   const cleanBaseClass = className.replace(/font-\w+/g, '').replace(/text-\w+-\d+/g, '').replace(/text-(left|center|right|justify)/g, '');
   const dynamicClassName = `${isBold ? 'font-bold' : ''} ${isItalic ? 'italic' : ''} ${isUnderline ? 'underline' : ''} text-${textAlign} ${fontFamily} ${cleanBaseClass}`.trim();
-  
-  // STILE APPLICATO AL TESTO
   const dynamicStyle = { color: textColor || undefined, fontSize: fontSizeMod !== 0 ? `calc(100% + ${fontSizeMod * 2}px)` : undefined };
 
   const Toolbar = () => {
@@ -134,22 +127,24 @@ export const EditableText: React.FC<EditableTextProps> = ({
             </div>
             <div className="w-px h-4 bg-stone-300"></div>
             
-            {/* DIMENSIONE & COLORE */}
+            {/* DIMENSIONE (MENU TENDINA) & COLORE */}
             <div className="flex items-center gap-2">
                 <div className="flex items-center bg-white rounded border border-stone-200 h-7">
-                    <button onClick={() => { const n = fontSizeMod - 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
+                    <button onClick={() => setFontSizeMod(p => p - 2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
                     
-                    {/* INPUT NUMERICO STABILE */}
-                    <input 
-                        type="text" 
-                        value={tempFontSize} 
-                        onChange={(e) => setTempFontSize(e.target.value)}
-                        onBlur={commitFontSize}
-                        onKeyDown={(e) => e.key === 'Enter' && commitFontSize()}
-                        className="w-10 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none focus:bg-blue-50"
-                    />
+                    {/* MENU DIMENSIONI AL POSTO DELL'INPUT */}
+                    <select 
+                        value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} 
+                        onChange={(e) => setFontSizeMod(Number(e.target.value))}
+                        className="w-16 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none bg-transparent cursor-pointer"
+                    >
+                        <option value="" disabled>--</option>
+                        {SIZE_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
                     
-                    <button onClick={() => { const n = fontSizeMod + 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
+                    <button onClick={() => setFontSizeMod(p => p + 2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
                 </div>
                 
                 <label className="flex items-center justify-center bg-white w-7 h-7 rounded border border-stone-200 cursor-pointer hover:bg-stone-50" title="Scegli Colore">
