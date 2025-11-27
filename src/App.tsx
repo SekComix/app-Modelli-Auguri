@@ -10,6 +10,7 @@ import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { THEMES, INITIAL_ARTICLES, INITIAL_DATA } from './data';
 
+// --- COMPONENTE PANNELLO STAMPA ---
 const PrintDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handlePrint = () => { window.print(); onClose(); };
   return (
@@ -27,6 +28,7 @@ const PrintDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
+// --- APP PRINCIPALE ---
 const App: React.FC = () => {
   const [data, setData] = useState<NewspaperData>(() => {
       const saved = localStorage.getItem('newspaper_data');
@@ -35,7 +37,9 @@ const App: React.FC = () => {
   });
   const [appConfig, setAppConfig] = useState(() => { const saved = localStorage.getItem('app_config'); return saved ? JSON.parse(saved) : { title: 'THE SEK CREATOR AND DESIGNER', logo: '' }; });
   
+  // STATI
   const [showDashboard, setShowDashboard] = useState(true);
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true); // <--- RIPRISTINATO
   const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showWidgetLibrary, setShowWidgetLibrary] = useState(false);
@@ -56,6 +60,7 @@ const App: React.FC = () => {
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD;
 
+  // --- LOGICA SALVATAGGIO ---
   const saveProjectToLibrary = () => {
       try {
           const library = JSON.parse(localStorage.getItem('sek_projects_library') || '[]');
@@ -70,41 +75,53 @@ const App: React.FC = () => {
 
   const loadProjectFromDashboard = (project: NewspaperData) => { setData(project); setShowDashboard(false); };
 
-  const generateContentForEvent = (type: EventType, config: any): { pubName: string, articles: Record<string, ArticleData>, index: string, extraPages: ExtraSpread[] } => {
-    let pubName = "La Cronaca Quotidiana"; let articles = JSON.parse(JSON.stringify(INITIAL_ARTICLES)); let index = "- Esteri .......... Pag. 2\n- Economia ........ Pag. 4\n- Cruciverba ...... Pag. 11"; let extraPages: ExtraSpread[] = []; 
-    const name = config.heroName1 || "Protagonista"; 
-    
-    let age = 0; if (config.date) { const birthYear = new Date(config.date).getFullYear(); const currentYear = new Date().getFullYear(); age = currentYear - birthYear; }
+  // --- LOGICA IMPORT FILE (Corretta per gestire Eventi) ---
+  const handleImportFile = (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (event) => { 
+          try { 
+              const importedData = JSON.parse(event.target?.result as string); 
+              if (importedData && importedData.themeId) { 
+                  setData({ ...importedData, widgets: importedData.widgets || [] }); 
+                  setShowDashboard(false); 
+                  setShowWelcomeScreen(false);
+                  alert("Caricato!"); 
+              } else { alert("File non valido."); } 
+          } catch (err) { alert("Errore caricamento."); } 
+      }; 
+      reader.readAsText(file);
+  };
 
+  // Wrapper per l'evento input HTML
+  const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files?.[0]) handleImportFile(e.target.files[0]);
+  };
+
+  const handleConfirmSave = () => { const finalName = backupFilename.endsWith('.json') ? backupFilename : `${backupFilename}.json`; const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = finalName; document.body.appendChild(link); link.click(); document.body.removeChild(link); setShowSaveDialog(false); };
+  const handleConfirmReset = () => { setData(INITIAL_DATA); setAppConfig({ title: 'THE SEK CREATOR AND DESIGNER', logo: '' }); localStorage.removeItem('newspaper_data'); setShowWidgetLibrary(false); setShowResetDialog(false); setShowDashboard(true); setShowWelcomeScreen(false); };
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); reader.readAsDataURL(file); } };
+  const openSaveDialog = () => { setBackupFilename(`giornale-${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`); setShowSaveDialog(true); }
+
+  // --- LOGICHE EDITOR ---
+  const updateTheme = (themeId: ThemeId) => { let newEventType = data.eventType; if (themeId === 'birthday') newEventType = EventType.BIRTHDAY; if (themeId === 'christmas') newEventType = EventType.CHRISTMAS; if (themeId === 'easter') newEventType = EventType.EASTER; const newData = { ...data, themeId, eventType: newEventType }; setData(newData); };
+  const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const newType = e.target.value as EventType; let newTheme = data.themeId; if (newType === EventType.CHRISTMAS) newTheme = 'christmas'; if (newType === EventType.EASTER) newTheme = 'easter'; if (newType === EventType.BIRTHDAY) newTheme = 'birthday'; setShowConfigPanel(true); setData(prev => ({ ...prev, eventType: newType, themeId: newTheme })); };
+  const updateArticle = (id: string, field: string, value: any) => setData(prev => ({ ...prev, articles: { ...prev.articles, [id]: { ...prev.articles[id], [field]: value } } }));
+  const updateMeta = (field: keyof NewspaperData, value: string | number) => setData(prev => ({ ...prev, [field]: value }));
+  const updateEventConfig = (field: keyof NewspaperData['eventConfig'], value: any) => setData(prev => ({ ...prev, eventConfig: { ...prev.eventConfig, [field]: value } }));
+
+  const generateContentForEvent = (type: EventType, config: any): { pubName: string, articles: Record<string, ArticleData>, index: string, extraPages: ExtraSpread[] } => {
+    let pubName = "La Cronaca Quotidiana"; let articles = JSON.parse(JSON.stringify(INITIAL_ARTICLES)); let index = "- Esteri .......... Pag. 2\n- Economia ........ Pag. 4\n- Cruciverba ...... Pag. 11"; let extraPages: ExtraSpread[] = []; const name = config.heroName1 || "Protagonista"; const genderSuffix = config.gender === 'F' ? 'a' : 'o'; let age = 0; if (config.date) { const birthYear = new Date(config.date).getFullYear(); const currentYear = new Date().getFullYear(); age = currentYear - birthYear; }
     switch (type) {
-        case EventType.BIRTHDAY:
-            pubName = `Il Corriere di ${name}`;
-            articles['lead'].headline = `BUON COMPLEANNO ${name.toUpperCase()}!`;
-            articles['lead'].subheadline = `Grande festa per i suoi splendidi ${age > 0 ? age : 'X'} anni`;
-            articles['lead'].content = `Oggi è un giorno davvero speciale! ${name} festeggia un traguardo importante...`;
-            break;
-        case EventType.WEDDING: 
-            pubName = `L'Eco degli Sposi`; 
-            articles['lead'].headline = `OGGI SPOSI!`; 
-            articles['lead'].content = "L'amore è nell'aria...";
-            break;
+        case EventType.BIRTHDAY: pubName = `Il Corriere di ${name}`; articles['lead'].headline = `BUON COMPLEANNO ${name.toUpperCase()}!`; articles['lead'].subheadline = `Grande festa per i suoi splendidi ${age > 0 ? age : 'X'} anni`; articles['lead'].content = `Oggi è un giorno speciale! ${name} festeggia un traguardo importante...`; break;
+        case EventType.WEDDING: pubName = `L'Eco degli Sposi`; articles['lead'].headline = `OGGI SPOSI!`; break;
     }
     return { pubName, articles, index, extraPages };
   };
 
   const handleApplyEventConfig = async () => { setIsUpdatingEvent(true); try { const { eventType, eventConfig } = data; const content = generateContentForEvent(eventType, eventConfig); setData(prev => ({ ...prev, publicationName: content.pubName, articles: content.articles, indexContent: content.index, extraSpreads: content.extraPages })); setShowConfigPanel(false); } catch (e) { console.error(e); } finally { setIsUpdatingEvent(false); } };
   
-  const addBlock = (section: 'front'|'back'|'sidebar', type: BlockType) => { 
-      const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type === 'image' ? '' : 'Nuovo...', height: type === 'image' ? 300 : undefined }; 
-      const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; 
-      setData(prev => ({ ...prev, [listKey]: [...prev[listKey], newBlock] })); 
-  };
-  
-  const updateBlock = (section: 'front'|'back'|'sidebar', id: string, value: string, height?: number) => { 
-      const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; 
-      setData(prev => ({ ...prev, [listKey]: prev[listKey].map(b => b.id === id ? { ...b, content: value, height: height !== undefined ? height : b.height } : b) })); 
-  };
-  
+  const addBlock = (section: 'front'|'back'|'sidebar', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type === 'image' ? '' : 'Nuovo...', height: type === 'image' ? 300 : undefined }; const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: [...prev[listKey], newBlock] })); };
+  const updateBlock = (section: 'front'|'back'|'sidebar', id: string, value: string, height?: number) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].map(b => b.id === id ? { ...b, content: value, height: height !== undefined ? height : b.height } : b) })); };
   const removeBlock = (section: 'front'|'back'|'sidebar', id: string) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].filter(b => b.id !== id) })); };
   const addSpread = () => { const startPage = 2 + (data.extraSpreads.length * 2); const newSpread: ExtraSpread = { id: `spread-${Date.now()}`, pageNumberLeft: startPage, pageNumberRight: startPage + 1, leftBlocks: [], rightBlocks: [] }; setData(prev => ({ ...prev, extraSpreads: [...prev.extraSpreads, newSpread] })); };
   const addBlockToSpread = (sid: string, side: 'left'|'right', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type==='image'?'':'Nuovo...', height: type === 'image' ? 300 : undefined }; setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: [...(side==='left'?s.leftBlocks:s.rightBlocks), newBlock] } : s) })); };
@@ -112,24 +129,16 @@ const App: React.FC = () => {
   const removeBlockInSpread = (sid: string, side: 'left'|'right', bid: string) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].filter(b => b.id !== bid) } : s) })); };
   const handleAddWidget = (type: WidgetType, content: string, subType?: string) => { const newWidget: WidgetData = { id: `widget-${Date.now()}`, type, content, text: type === 'bubble' ? 'Clicca...' : type === 'text' ? 'TESTO' : undefined, style: { x: window.innerWidth/2-100, y: window.scrollY+300, width: 200, height: 200, rotation: 0, zIndex: 50, fontSize: 24, color: '#000000', fontFamily: 'Chomsky', flipX: false } }; if (type === 'sticker' && !subType) { newWidget.style.width = 100; newWidget.style.height = 100; } setData(prev => ({ ...prev, widgets: [...(prev.widgets || []), newWidget] })); setSelectedWidgetId(newWidget.id); setShowWidgetLibrary(false); };
   const setWidgets = (action: React.SetStateAction<WidgetData[]>) => { setData(prev => { const newWidgets = typeof action === 'function' ? action(prev.widgets || []) : action; return { ...prev, widgets: newWidgets }; }); };
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); reader.readAsDataURL(file); } };
-  const openSaveDialog = () => { setBackupFilename(`giornale-${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`); setShowSaveDialog(true); }
-  const handleConfirmSave = () => { const finalName = backupFilename.endsWith('.json') ? backupFilename : `${backupFilename}.json`; const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = finalName; document.body.appendChild(link); link.click(); document.body.removeChild(link); setShowSaveDialog(false); };
-  const handleImportState = (file: File) => { const reader = new FileReader(); reader.onload = (event) => { try { const importedData = JSON.parse(event.target?.result as string); if (importedData && importedData.themeId) { setData({ ...importedData, widgets: importedData.widgets || [] }); setShowDashboard(false); alert("Caricato!"); } else { alert("File non valido."); } } catch (err) { alert("Errore caricamento."); } }; reader.readAsText(file); };
-  const handleConfirmReset = () => { setData(INITIAL_DATA); setAppConfig({ title: 'THE SEK CREATOR AND DESIGNER', logo: '' }); localStorage.removeItem('newspaper_data'); setShowWidgetLibrary(false); setShowResetDialog(false); setShowDashboard(true); };
-  const updateTheme = (themeId: ThemeId) => { let newEventType = data.eventType; if (themeId === 'birthday') newEventType = EventType.BIRTHDAY; if (themeId === 'christmas') newEventType = EventType.CHRISTMAS; if (themeId === 'easter') newEventType = EventType.EASTER; const newData = { ...data, themeId, eventType: newEventType }; setData(newData); };
-  const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const newType = e.target.value as EventType; let newTheme = data.themeId; if (newType === EventType.CHRISTMAS) newTheme = 'christmas'; if (newType === EventType.EASTER) newTheme = 'easter'; if (newType === EventType.BIRTHDAY) newTheme = 'birthday'; setShowConfigPanel(true); setData(prev => ({ ...prev, eventType: newType, themeId: newTheme })); };
-  const updateArticle = (id: string, field: string, value: any) => setData(prev => ({ ...prev, articles: { ...prev.articles, [id]: { ...prev.articles[id], [field]: value } } }));
-  const updateMeta = (field: keyof NewspaperData, value: string | number) => setData(prev => ({ ...prev, [field]: value }));
-  const updateEventConfig = (field: keyof NewspaperData['eventConfig'], value: any) => setData(prev => ({ ...prev, eventConfig: { ...prev.eventConfig, [field]: value } }));
 
   const pageHeightClass = "h-[1350px] overflow-hidden";
   const customPageStyle = isDigital && data.customBgColor ? { backgroundColor: data.customBgColor } : {};
+  
   // --- VISUALIZZAZIONE ---
   if (showDashboard) {
-      return <Dashboard currentData={data} onLoadProject={loadProjectFromDashboard} onNewProject={() => { setData(INITIAL_DATA); setShowDashboard(false); }} onImport={handleImportState} />;
+      return <Dashboard currentData={data} onLoadProject={loadProjectFromDashboard} onNewProject={() => { setData(INITIAL_DATA); setShowDashboard(false); }} onImport={handleImportFile} />;
   }
 
+  // --- RENDER FRONT PAGE ---
   const renderFrontPage = (wrapperClass: string) => (
     <div className={`${wrapperClass} ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative ${currentTheme.borderClass} ${!isDigital && !isPoster && !isPreviewMode ? 'border-r' : ''} print:w-full`} style={customPageStyle}>
       {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilter)" /></svg></div>)}
@@ -177,8 +186,9 @@ const App: React.FC = () => {
      </div>
   );
 
-  if (showWelcomeScreen && !localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={handleImportState}/><WelcomeScreen hasSavedData={false} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
-  if (showWelcomeScreen && localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={handleImportState}/><WelcomeScreen hasSavedData={true} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
+  // --- UI SCHERMATE DI AVVIO ---
+  if (showWelcomeScreen && !localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={onFileInputChange}/><WelcomeScreen hasSavedData={false} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
+  if (showWelcomeScreen && localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={onFileInputChange}/><WelcomeScreen hasSavedData={true} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
   
   return (
     <div className="min-h-screen bg-stone-800 p-4 lg:p-8 font-sans text-stone-900">
