@@ -16,7 +16,7 @@ export interface ArticleData {
   content: string;
   imageUrl?: string;
   imagePrompt?: string;
-  customHeight?: number; // Campo aggiunto per ridimensionamento foto
+  customHeight?: number;
 }
 
 export type BlockType = 'headline' | 'paragraph' | 'image';
@@ -40,6 +40,22 @@ export interface ExtraSpread {
 }
 
 export type ThemeId = 'classic' | 'modern' | 'vintage' | 'usa' | 'germany' | 'france' | 'italy' | 'digital' | 'birthday' | 'christmas' | 'easter';
+
+// --- QUESTA È LA PARTE CHE MANCAVA ---
+export interface ThemeConfig {
+  id: ThemeId;
+  label: string;
+  language: string;
+  locale: string;
+  bgClass: string;
+  textClass: string;
+  borderClass: string;
+  titleFont: string;
+  headlineFont: string;
+  bodyFont: string;
+  imageFilter: string;
+  headerLayout: 'center' | 'left' | 'modern' | 'digital';
+}
 
 export enum EventType {
   GENERIC = 'GENERIC',
@@ -69,7 +85,6 @@ export interface EventConfig {
   wishesFrom?: string;
 }
 
-// --- WIDGET SYSTEM TYPES ---
 export type WidgetType = 'mascot' | 'bubble' | 'sticker' | 'text' | 'qrcode';
 
 export interface WidgetData {
