@@ -34,17 +34,18 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const [prompt, setPrompt] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   
+  // STATI STILE
   const [isBold, setIsBold] = useState(className.includes('font-bold'));
   const [isItalic, setIsItalic] = useState(className.includes('italic'));
   const [isUnderline, setIsUnderline] = useState(className.includes('underline'));
   const [textAlign, setTextAlign] = useState<'left'|'center'|'right'|'justify'>('left');
-  
   const [textColor, setTextColor] = useState<string>(''); 
   const [fontFamily, setFontFamily] = useState<string>(''); 
   const [fontSizeMod, setFontSizeMod] = useState(0); 
   
-  // STATO ISOLATO PER L'INPUT NUMERICO
-  const [inputValue, setInputValue] = useState("0");
+  // STATO TEMPORANEO PER INPUT NUMERICO
+  // Questo mantiene il valore scritto (es "4") finché non premi Invio
+  const [tempFontSize, setTempFontSize] = useState("0");
 
   const inputRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,9 +55,9 @@ export const EditableText: React.FC<EditableTextProps> = ({
       if (foundFont) setFontFamily(foundFont.value);
   }, [className]);
 
-  // Aggiorna il numero visibile solo quando l'editor si apre
+  // Quando apro l'editor, sincronizzo il numero
   useEffect(() => {
-      if (isEditing) setInputValue(fontSizeMod.toString());
+      if (isEditing) setTempFontSize(fontSizeMod.toString());
   }, [isEditing, fontSizeMod]);
 
   const handleSpeak = (e: React.MouseEvent) => {
@@ -70,23 +71,18 @@ export const EditableText: React.FC<EditableTextProps> = ({
       setIsSpeaking(true);
   };
 
-  // APPLICA IL NUMERO SCRITTO
-  const applyFontSize = () => {
-      const val = parseInt(inputValue);
-      if (!isNaN(val)) {
-          setFontSizeMod(val);
-      } else {
-          setInputValue(fontSizeMod.toString()); // Ripristina se non valido
-      }
+  // Applica il font solo quando confermo
+  const commitFontSize = () => {
+      const val = parseInt(tempFontSize);
+      if (!isNaN(val)) setFontSizeMod(val);
+      else setTempFontSize(fontSizeMod.toString()); // Ripristina se errato
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-        // Ignora click dentro il box o dentro la toolbar
         if (containerRef.current && containerRef.current.contains(event.target as Node)) return;
         const toolbar = document.getElementById('text-toolbar-portal');
         if (toolbar && toolbar.contains(event.target as Node)) return;
-        
         setIsEditing(false);
     };
     if (isEditing) document.addEventListener('mousedown', handleClickOutside);
@@ -97,6 +93,8 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   const cleanBaseClass = className.replace(/font-\w+/g, '').replace(/text-\w+-\d+/g, '').replace(/text-(left|center|right|justify)/g, '');
   const dynamicClassName = `${isBold ? 'font-bold' : ''} ${isItalic ? 'italic' : ''} ${isUnderline ? 'underline' : ''} text-${textAlign} ${fontFamily} ${cleanBaseClass}`.trim();
+  
+  // STILE APPLICATO AL TESTO
   const dynamicStyle = { color: textColor || undefined, fontSize: fontSizeMod !== 0 ? `calc(100% + ${fontSizeMod * 2}px)` : undefined };
 
   const Toolbar = () => {
@@ -107,7 +105,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
         <div 
             id="text-toolbar-portal-inner"
             className="flex flex-wrap gap-2 items-center text-xs animate-fade-in-up select-none bg-stone-100 px-3 py-2 rounded-lg border border-stone-300 shadow-xl mx-auto w-max max-w-[95vw] z-[9999]"
-            onMouseDown={(e) => e.stopPropagation()} // Blocca propagazione click
+            onMouseDown={(e) => e.stopPropagation()} 
         >
             {/* FONT */}
             <div className="flex items-center bg-white rounded border border-stone-200 px-1 h-7">
@@ -128,19 +126,30 @@ export const EditableText: React.FC<EditableTextProps> = ({
             </div>
             <div className="w-px h-4 bg-stone-300"></div>
             
-            {/* DIMENSIONE (Input isolato) */}
+            {/* ALLINEAMENTO */}
+            <div className="flex bg-white rounded border border-stone-200 h-7">
+                <button onClick={() => setTextAlign('left')} className={`px-2 h-full hover:bg-stone-100 ${textAlign==='left'?'text-blue-600':'text-stone-600'}`}><AlignLeft size={14}/></button>
+                <button onClick={() => setTextAlign('center')} className={`px-2 h-full hover:bg-stone-100 ${textAlign==='center'?'text-blue-600':'text-stone-600'}`}><AlignCenter size={14}/></button>
+                <button onClick={() => setTextAlign('justify')} className={`px-2 h-full hover:bg-stone-100 ${textAlign==='justify'?'text-blue-600':'text-stone-600'}`}><AlignJustify size={14}/></button>
+            </div>
+            <div className="w-px h-4 bg-stone-300"></div>
+            
+            {/* DIMENSIONE & COLORE */}
             <div className="flex items-center gap-2">
                 <div className="flex items-center bg-white rounded border border-stone-200 h-7">
-                    <button onClick={() => {const n = fontSizeMod - 2; setFontSizeMod(n); setInputValue(n.toString())}} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
+                    <button onClick={() => { const n = fontSizeMod - 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
+                    
+                    {/* INPUT NUMERICO STABILE */}
                     <input 
                         type="text" 
-                        value={inputValue} 
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onBlur={applyFontSize}
-                        onKeyDown={(e) => e.key === 'Enter' && applyFontSize()}
+                        value={tempFontSize} 
+                        onChange={(e) => setTempFontSize(e.target.value)}
+                        onBlur={commitFontSize}
+                        onKeyDown={(e) => e.key === 'Enter' && commitFontSize()}
                         className="w-10 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none focus:bg-blue-50"
                     />
-                    <button onClick={() => {const n = fontSizeMod + 2; setFontSizeMod(n); setInputValue(n.toString())}} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
+                    
+                    <button onClick={() => { const n = fontSizeMod + 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
                 </div>
                 
                 <label className="flex items-center justify-center bg-white w-7 h-7 rounded border border-stone-200 cursor-pointer hover:bg-stone-50" title="Scegli Colore">
