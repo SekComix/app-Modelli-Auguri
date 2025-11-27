@@ -16,7 +16,7 @@ interface EditableTextProps {
 }
 
 const FONT_OPTIONS = [
-    { label: 'Font: Default', value: '' },
+    { label: 'Default', value: '' },
     { label: 'Giornale Antico', value: 'font-chomsky' },
     { label: 'Titolo Elegante', value: 'font-playfair' },
     { label: 'Testo Classico', value: 'font-merriweather' },
@@ -26,7 +26,6 @@ const FONT_OPTIONS = [
     { label: 'A Mano', value: 'font-handwriting' }
 ];
 
-// NUOVA SCALA DIMENSIONI ORDINATA
 const SIZE_OPTIONS = [
     { label: 'Default (Reset)', value: 0 },
     { label: 'Molto Piccolo (-4)', value: -4 },
@@ -54,7 +53,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const [textColor, setTextColor] = useState<string>(''); 
   const [fontFamily, setFontFamily] = useState<string>(''); 
   const [fontSizeMod, setFontSizeMod] = useState(0); 
-  const [tempFontSize, setTempFontSize] = useState("0"); // Input numerico
+  const [tempFontSize, setTempFontSize] = useState("0");
 
   const inputRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -107,12 +106,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       if (!portalTarget) return null;
 
       return createPortal(
-        <div 
-            id="text-toolbar-portal-inner"
-            className="flex flex-wrap gap-2 items-center text-xs animate-fade-in-up select-none bg-stone-100 px-3 py-2 rounded-lg border border-stone-300 shadow-xl mx-auto w-max max-w-[95vw] z-[9999]"
-            onMouseDown={(e) => e.stopPropagation()} 
-        >
-            {/* FONT */}
+        <div id="text-toolbar-portal-inner" className="flex flex-wrap gap-2 items-center text-xs animate-fade-in-up select-none bg-stone-100 px-3 py-2 rounded-lg border border-stone-300 shadow-xl mx-auto w-max max-w-[95vw] z-[9999]" onMouseDown={(e) => e.stopPropagation()}>
             <div className="flex items-center bg-white rounded border border-stone-200 px-1 h-7">
                 <Type size={14} className="text-stone-400 mr-1"/>
                 <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="bg-transparent text-xs font-bold text-stone-700 outline-none w-28 py-1 cursor-pointer h-full">
@@ -120,8 +114,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
                 </select>
             </div>
             <div className="w-px h-4 bg-stone-300"></div>
-            
-            {/* STILI */}
             <div className="flex bg-white rounded border border-stone-200 h-7">
                 <button onClick={() => setIsBold(!isBold)} className={`px-2 h-full hover:bg-stone-100 ${isBold ? 'text-blue-600 font-bold' : 'text-stone-600'}`}><Bold size={14}/></button>
                 <div className="w-px h-full bg-stone-100"></div>
@@ -130,45 +122,23 @@ export const EditableText: React.FC<EditableTextProps> = ({
                 <button onClick={() => setIsUnderline(!isUnderline)} className={`px-2 h-full hover:bg-stone-100 ${isUnderline ? 'text-blue-600 underline' : 'text-stone-600'}`}><Underline size={14}/></button>
             </div>
             <div className="w-px h-4 bg-stone-300"></div>
-            
-            {/* ALLINEAMENTO */}
             <div className="flex bg-white rounded border border-stone-200 h-7">
                 <button onClick={() => setTextAlign('left')} className={`px-2 h-full hover:bg-stone-100 ${textAlign==='left'?'text-blue-600':'text-stone-600'}`}><AlignLeft size={14}/></button>
                 <button onClick={() => setTextAlign('center')} className={`px-2 h-full hover:bg-stone-100 ${textAlign==='center'?'text-blue-600':'text-stone-600'}`}><AlignCenter size={14}/></button>
                 <button onClick={() => setTextAlign('justify')} className={`px-2 h-full hover:bg-stone-100 ${textAlign==='justify'?'text-blue-600':'text-stone-600'}`}><AlignJustify size={14}/></button>
             </div>
             <div className="w-px h-4 bg-stone-300"></div>
-            
-            {/* DIMENSIONE (MENU + INPUT) */}
             <div className="flex items-center gap-2">
                 <div className="flex items-center bg-white rounded border border-stone-200 h-7">
                     <button onClick={() => { const n = fontSizeMod - 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
-                    
-                    {/* TENDINA PREDEFINITA */}
-                    <select 
-                        value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} 
-                        onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setFontSizeMod(val);
-                            setTempFontSize(val.toString());
-                        }}
-                        className="w-16 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none bg-transparent cursor-pointer"
-                    >
-                         <option value="" disabled>--</option>
-                        {SIZE_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
+                    <select value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} onChange={(e) => { const val = Number(e.target.value); setFontSizeMod(val); setTempFontSize(val.toString()); }} className="w-16 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none bg-transparent cursor-pointer">
+                        <option value="" disabled>--</option>
+                        {SIZE_OPTIONS.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
                     </select>
-                    
                     <button onClick={() => { const n = fontSizeMod + 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
                 </div>
-                
-                <label className="flex items-center justify-center bg-white w-7 h-7 rounded border border-stone-200 cursor-pointer hover:bg-stone-50" title="Scegli Colore">
-                    <div className="w-4 h-4 rounded-full border border-stone-300" style={{backgroundColor: textColor || '#000000'}}></div>
-                    <input type="color" value={textColor || '#000000'} onChange={(e) => setTextColor(e.target.value)} className="opacity-0 absolute w-0 h-0"/>
-                </label>
+                <label className="flex items-center justify-center bg-white w-7 h-7 rounded border border-stone-200 cursor-pointer hover:bg-stone-50" title="Scegli Colore"><div className="w-4 h-4 rounded-full border border-stone-300" style={{backgroundColor: textColor || '#000000'}}></div><input type="color" value={textColor || '#000000'} onChange={(e) => setTextColor(e.target.value)} className="opacity-0 absolute w-0 h-0"/></label>
             </div>
-
             {aiEnabled && (<button onClick={() => setShowAiDialog(true)} className="ml-auto flex items-center gap-1 bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 h-7 rounded text-[10px] font-bold uppercase transition-colors border border-purple-200"><Wand2 size={12}/> AI</button>)}
             <button onClick={(e) => { e.stopPropagation(); setIsEditing(false); }} className="ml-1 text-stone-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50" title="Chiudi"><X size={16}/></button>
         </div>, portalTarget
@@ -189,7 +159,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   }
 
   return (
-    <div ref={containerRef} className={`relative group cursor-pointer hover:bg-blue-50/50 rounded transition-colors p-0.5 ${dynamicClassName}`} style={dynamicStyle} onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
+    <div ref={containerRef} className={`relative group cursor-pointer hover:bg-blue-50/50 rounded transition-colors p-0.5 ${dynamicClassName} ${multiline ? 'whitespace-pre-wrap break-words' : ''}`} style={dynamicStyle} onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
       {value || <span className="opacity-40 italic">{placeholder}</span>}
       <div className="absolute -top-3 right-0 hidden group-hover:flex gap-1 z-10">
          {value && (<button onClick={handleSpeak} className="bg-white shadow text-blue-600 p-1 rounded-full hover:scale-110 transition-transform border border-blue-100" title="Leggi Testo"><Volume2 size={12}/></button>)}
