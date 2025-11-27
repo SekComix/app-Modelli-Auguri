@@ -43,8 +43,8 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const [fontFamily, setFontFamily] = useState<string>(''); 
   const [fontSizeMod, setFontSizeMod] = useState(0); 
   
-  // NUOVO: Stato temporaneo per l'input numerico (evita i salti)
-  const [tempFontSize, setTempFontSize] = useState<string>("0");
+  // STATO ISOLATO PER L'INPUT NUMERICO
+  const [inputValue, setInputValue] = useState("0");
 
   const inputRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,10 +54,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
       if (foundFont) setFontFamily(foundFont.value);
   }, [className]);
 
-  // Aggiorna l'input numerico quando cambia la dimensione reale
+  // Aggiorna il numero visibile solo quando l'editor si apre
   useEffect(() => {
-      setTempFontSize(fontSizeMod.toString());
-  }, [fontSizeMod]);
+      if (isEditing) setInputValue(fontSizeMod.toString());
+  }, [isEditing, fontSizeMod]);
 
   const handleSpeak = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -70,18 +70,23 @@ export const EditableText: React.FC<EditableTextProps> = ({
       setIsSpeaking(true);
   };
 
-  // Funzione per applicare il numero scritto
-  const commitFontSize = () => {
-      const val = parseInt(tempFontSize);
-      if (!isNaN(val)) setFontSizeMod(val);
-      else setTempFontSize(fontSizeMod.toString()); // Revert se non valido
+  // APPLICA IL NUMERO SCRITTO
+  const applyFontSize = () => {
+      const val = parseInt(inputValue);
+      if (!isNaN(val)) {
+          setFontSizeMod(val);
+      } else {
+          setInputValue(fontSizeMod.toString()); // Ripristina se non valido
+      }
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+        // Ignora click dentro il box o dentro la toolbar
         if (containerRef.current && containerRef.current.contains(event.target as Node)) return;
         const toolbar = document.getElementById('text-toolbar-portal');
         if (toolbar && toolbar.contains(event.target as Node)) return;
+        
         setIsEditing(false);
     };
     if (isEditing) document.addEventListener('mousedown', handleClickOutside);
@@ -99,7 +104,11 @@ export const EditableText: React.FC<EditableTextProps> = ({
       if (!portalTarget) return null;
 
       return createPortal(
-        <div id="text-toolbar-portal-inner" className="flex flex-wrap gap-2 items-center text-xs animate-fade-in-up select-none bg-stone-100 px-3 py-2 rounded-lg border border-stone-300 shadow-xl mx-auto w-max max-w-[95vw] z-[9999]" onMouseDown={(e) => e.stopPropagation()}>
+        <div 
+            id="text-toolbar-portal-inner"
+            className="flex flex-wrap gap-2 items-center text-xs animate-fade-in-up select-none bg-stone-100 px-3 py-2 rounded-lg border border-stone-300 shadow-xl mx-auto w-max max-w-[95vw] z-[9999]"
+            onMouseDown={(e) => e.stopPropagation()} // Blocca propagazione click
+        >
             {/* FONT */}
             <div className="flex items-center bg-white rounded border border-stone-200 px-1 h-7">
                 <Type size={14} className="text-stone-400 mr-1"/>
@@ -108,6 +117,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
                 </select>
             </div>
             <div className="w-px h-4 bg-stone-300"></div>
+            
             {/* STILI */}
             <div className="flex bg-white rounded border border-stone-200 h-7">
                 <button onClick={() => setIsBold(!isBold)} className={`px-2 h-full hover:bg-stone-100 ${isBold ? 'text-blue-600 font-bold' : 'text-stone-600'}`}><Bold size={14}/></button>
@@ -117,34 +127,28 @@ export const EditableText: React.FC<EditableTextProps> = ({
                 <button onClick={() => setIsUnderline(!isUnderline)} className={`px-2 h-full hover:bg-stone-100 ${isUnderline ? 'text-blue-600 underline' : 'text-stone-600'}`}><Underline size={14}/></button>
             </div>
             <div className="w-px h-4 bg-stone-300"></div>
-            {/* ALLINEAMENTO */}
-            <div className="flex bg-white rounded border border-stone-200 h-7">
-                <button onClick={() => setTextAlign('left')} className={`px-2 h-full hover:bg-stone-100 ${textAlign==='left'?'text-blue-600':'text-stone-600'}`}><AlignLeft size={14}/></button>
-                <button onClick={() => setTextAlign('center')} className={`px-2 h-full hover:bg-stone-100 ${textAlign==='center'?'text-blue-600':'text-stone-600'}`}><AlignCenter size={14}/></button>
-                <button onClick={() => setTextAlign('justify')} className={`px-2 h-full hover:bg-stone-100 ${textAlign==='justify'?'text-blue-600':'text-stone-600'}`}><AlignJustify size={14}/></button>
-            </div>
-            <div className="w-px h-4 bg-stone-300"></div>
-            {/* DIMENSIONE & COLORE */}
+            
+            {/* DIMENSIONE (Input isolato) */}
             <div className="flex items-center gap-2">
                 <div className="flex items-center bg-white rounded border border-stone-200 h-7">
-                    <button onClick={() => setFontSizeMod(p => p - 2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
-                    {/* INPUT NUMERICO MIGLIORATO: Aggiorna solo su Invio o Blur */}
+                    <button onClick={() => {const n = fontSizeMod - 2; setFontSizeMod(n); setInputValue(n.toString())}} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
                     <input 
                         type="text" 
-                        value={tempFontSize} 
-                        onChange={(e) => setTempFontSize(e.target.value)}
-                        onBlur={commitFontSize}
-                        onKeyDown={(e) => e.key === 'Enter' && commitFontSize()}
+                        value={inputValue} 
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onBlur={applyFontSize}
+                        onKeyDown={(e) => e.key === 'Enter' && applyFontSize()}
                         className="w-10 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none focus:bg-blue-50"
-                        title="Scrivi e premi Invio"
                     />
-                    <button onClick={() => setFontSizeMod(p => p + 2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
+                    <button onClick={() => {const n = fontSizeMod + 2; setFontSizeMod(n); setInputValue(n.toString())}} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
                 </div>
+                
                 <label className="flex items-center justify-center bg-white w-7 h-7 rounded border border-stone-200 cursor-pointer hover:bg-stone-50" title="Scegli Colore">
                     <div className="w-4 h-4 rounded-full border border-stone-300" style={{backgroundColor: textColor || '#000000'}}></div>
                     <input type="color" value={textColor || '#000000'} onChange={(e) => setTextColor(e.target.value)} className="opacity-0 absolute w-0 h-0"/>
                 </label>
             </div>
+
             {aiEnabled && (<button onClick={() => setShowAiDialog(true)} className="ml-auto flex items-center gap-1 bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 h-7 rounded text-[10px] font-bold uppercase transition-colors border border-purple-200"><Wand2 size={12}/> AI</button>)}
             <button onClick={(e) => { e.stopPropagation(); setIsEditing(false); }} className="ml-1 text-stone-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50" title="Chiudi"><X size={16}/></button>
         </div>, portalTarget
@@ -168,7 +172,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
     <div ref={containerRef} className={`relative group cursor-pointer hover:bg-blue-50/50 rounded transition-colors p-0.5 ${dynamicClassName}`} style={dynamicStyle} onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
       {value || <span className="opacity-40 italic">{placeholder}</span>}
       <div className="absolute -top-3 right-0 hidden group-hover:flex gap-1 z-10">
-         {value && (<button onClick={handleSpeak} className="bg-white shadow text-blue-600 p-1 rounded-full hover:scale-110 transition-transform border border-blue-100" title="Leggi Testo">{isSpeaking ? <StopCircle size={12} className="text-red-500 animate-pulse"/> : <Volume2 size={12}/>}</button>)}
+         {value && (<button onClick={handleSpeak} className="bg-white shadow text-blue-600 p-1 rounded-full hover:scale-110 transition-transform border border-blue-100" title="Leggi Testo"><Volume2 size={12}/></button>)}
       </div>
     </div>
   );
