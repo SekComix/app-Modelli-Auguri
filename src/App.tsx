@@ -10,7 +10,6 @@ import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { THEMES, INITIAL_ARTICLES, INITIAL_DATA } from './data';
 
-// --- COMPONENTE PANNELLO STAMPA ---
 const PrintDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handlePrint = () => { window.print(); onClose(); };
   return (
@@ -28,7 +27,6 @@ const PrintDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
-// --- APP PRINCIPALE ---
 const App: React.FC = () => {
   const [data, setData] = useState<NewspaperData>(() => {
       const saved = localStorage.getItem('newspaper_data');
@@ -37,9 +35,11 @@ const App: React.FC = () => {
   });
   const [appConfig, setAppConfig] = useState(() => { const saved = localStorage.getItem('app_config'); return saved ? JSON.parse(saved) : { title: 'THE SEK CREATOR AND DESIGNER', logo: '' }; });
   
-  // STATI
+  // --- STATI DI NAVIGAZIONE INTELLIGENTE ---
+  // Se ho un giornale in memoria, mostro la dashboard. Se no, il welcome.
   const [showDashboard, setShowDashboard] = useState(true);
-  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true); // <--- RIPRISTINATO
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(() => !localStorage.getItem('newspaper_data')); 
+  
   const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showWidgetLibrary, setShowWidgetLibrary] = useState(false);
@@ -60,7 +60,6 @@ const App: React.FC = () => {
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD;
 
-  // --- LOGICA SALVATAGGIO ---
   const saveProjectToLibrary = () => {
       try {
           const library = JSON.parse(localStorage.getItem('sek_projects_library') || '[]');
@@ -73,9 +72,8 @@ const App: React.FC = () => {
       } catch (e) { alert("Spazio esaurito. Esporta il JSON."); }
   };
 
-  const loadProjectFromDashboard = (project: NewspaperData) => { setData(project); setShowDashboard(false); };
+  const loadProjectFromDashboard = (project: NewspaperData) => { setData(project); setShowDashboard(false); setShowWelcomeScreen(false); };
 
-  // --- LOGICA IMPORT FILE (Corretta per gestire Eventi) ---
   const handleImportFile = (file: File) => {
       const reader = new FileReader();
       reader.onload = (event) => { 
@@ -92,17 +90,23 @@ const App: React.FC = () => {
       reader.readAsText(file);
   };
 
-  // Wrapper per l'evento input HTML
-  const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files?.[0]) handleImportFile(e.target.files[0]);
-  };
-
+  const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) handleImportFile(e.target.files[0]); };
   const handleConfirmSave = () => { const finalName = backupFilename.endsWith('.json') ? backupFilename : `${backupFilename}.json`; const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = finalName; document.body.appendChild(link); link.click(); document.body.removeChild(link); setShowSaveDialog(false); };
-  const handleConfirmReset = () => { setData(INITIAL_DATA); setAppConfig({ title: 'THE SEK CREATOR AND DESIGNER', logo: '' }); localStorage.removeItem('newspaper_data'); setShowWidgetLibrary(false); setShowResetDialog(false); setShowDashboard(true); setShowWelcomeScreen(false); };
+  
+  // RESET COMPLETO: Torna alla dashboard/welcome come se fosse la prima volta
+  const handleConfirmReset = () => { 
+      setData(INITIAL_DATA); 
+      localStorage.removeItem('newspaper_data'); 
+      setShowResetDialog(false); 
+      setShowDashboard(true); 
+      // Se non ho progetti salvati, mostro welcome, altrimenti dashboard
+      const hasProjects = !!localStorage.getItem('sek_projects_library');
+      setShowWelcomeScreen(!hasProjects);
+  };
+  
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); reader.readAsDataURL(file); } };
   const openSaveDialog = () => { setBackupFilename(`giornale-${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`); setShowSaveDialog(true); }
 
-  // --- LOGICHE EDITOR ---
   const updateTheme = (themeId: ThemeId) => { let newEventType = data.eventType; if (themeId === 'birthday') newEventType = EventType.BIRTHDAY; if (themeId === 'christmas') newEventType = EventType.CHRISTMAS; if (themeId === 'easter') newEventType = EventType.EASTER; const newData = { ...data, themeId, eventType: newEventType }; setData(newData); };
   const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const newType = e.target.value as EventType; let newTheme = data.themeId; if (newType === EventType.CHRISTMAS) newTheme = 'christmas'; if (newType === EventType.EASTER) newTheme = 'easter'; if (newType === EventType.BIRTHDAY) newTheme = 'birthday'; setShowConfigPanel(true); setData(prev => ({ ...prev, eventType: newType, themeId: newTheme })); };
   const updateArticle = (id: string, field: string, value: any) => setData(prev => ({ ...prev, articles: { ...prev.articles, [id]: { ...prev.articles[id], [field]: value } } }));
@@ -119,7 +123,6 @@ const App: React.FC = () => {
   };
 
   const handleApplyEventConfig = async () => { setIsUpdatingEvent(true); try { const { eventType, eventConfig } = data; const content = generateContentForEvent(eventType, eventConfig); setData(prev => ({ ...prev, publicationName: content.pubName, articles: content.articles, indexContent: content.index, extraSpreads: content.extraPages })); setShowConfigPanel(false); } catch (e) { console.error(e); } finally { setIsUpdatingEvent(false); } };
-  
   const addBlock = (section: 'front'|'back'|'sidebar', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type === 'image' ? '' : 'Nuovo...', height: type === 'image' ? 300 : undefined }; const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: [...prev[listKey], newBlock] })); };
   const updateBlock = (section: 'front'|'back'|'sidebar', id: string, value: string, height?: number) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].map(b => b.id === id ? { ...b, content: value, height: height !== undefined ? height : b.height } : b) })); };
   const removeBlock = (section: 'front'|'back'|'sidebar', id: string) => { const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks'; setData(prev => ({ ...prev, [listKey]: prev[listKey].filter(b => b.id !== id) })); };
@@ -133,12 +136,15 @@ const App: React.FC = () => {
   const pageHeightClass = "h-[1350px] overflow-hidden";
   const customPageStyle = isDigital && data.customBgColor ? { backgroundColor: data.customBgColor } : {};
   
-  // --- VISUALIZZAZIONE ---
-  if (showDashboard) {
+  if (showDashboard && !showWelcomeScreen) {
       return <Dashboard currentData={data} onLoadProject={loadProjectFromDashboard} onNewProject={() => { setData(INITIAL_DATA); setShowDashboard(false); }} onImport={handleImportFile} />;
   }
 
-  // --- RENDER FRONT PAGE ---
+  // Se non ho dati in memoria (prima volta assoluta), mostro welcome
+  if (showWelcomeScreen) {
+      return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={onFileInputChange}/><WelcomeScreen hasSavedData={false} onContinue={()=>{setShowWelcomeScreen(false); setShowDashboard(true);}} onNew={()=>{handleConfirmReset(); setShowWelcomeScreen(false); setShowDashboard(false);}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
+  }
+
   const renderFrontPage = (wrapperClass: string) => (
     <div className={`${wrapperClass} ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative ${currentTheme.borderClass} ${!isDigital && !isPoster && !isPreviewMode ? 'border-r' : ''} print:w-full`} style={customPageStyle}>
       {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilter)" /></svg></div>)}
@@ -186,10 +192,8 @@ const App: React.FC = () => {
      </div>
   );
 
-  // --- UI SCHERMATE DI AVVIO ---
-  if (showWelcomeScreen && !localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={onFileInputChange}/><WelcomeScreen hasSavedData={false} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
-  if (showWelcomeScreen && localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={onFileInputChange}/><WelcomeScreen hasSavedData={true} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
-  
+  if (isPreviewMode) return <div className="fixed inset-0 bg-stone-900 z-[1000] overflow-y-auto flex flex-col items-center p-8 print:bg-white print:p-0 print:block print:relative"><div className="w-full max-w-6xl flex justify-between items-center mb-8 text-white print:hidden"><div className="flex items-center gap-3"><Eye size={24} className="text-green-400"/><h2 className="text-2xl font-bold uppercase tracking-wider">Anteprima di Stampa</h2></div><div className="flex gap-4"><button onClick={()=>setIsPreviewMode(false)} className="bg-stone-700 hover:bg-stone-600 text-white px-6 py-3 rounded-full font-bold uppercase flex items-center gap-2"><ArrowLeft size={18}/> Torna all'Editor</button><button onClick={()=>setShowPrintDialog(true)} className="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg font-bold text-xs shadow-md transition-transform hover:scale-105 flex gap-1 items-center" title="Stampa Subito"><Printer size={16}/> <span className="hidden xl:inline">Stampa</span></button></div></div><div className="flex flex-col lg:flex-row bg-white shadow-2xl mb-12 print:shadow-none print:mb-0 print:w-full print:break-after-page"><div className="w-[800px] border-r border-dashed border-stone-300 print:w-1/2 print:border-none">{renderBackPage('w-full')}</div><div className="w-[800px] print:w-1/2">{renderFrontPage('w-full')}</div></div>{data.extraSpreads.map(spread=>(<div key={spread.id} className="flex flex-col lg:flex-row bg-white shadow-2xl mb-12 print:shadow-none print:mb-0 print:w-full print:break-before-page print:break-after-page"><div className="w-[800px] border-r border-dashed border-stone-300 print:w-1/2 print:border-none">{renderInternalPage(spread.leftBlocks,spread.pageNumberLeft,spread.id,'left')}</div><div className="w-[800px] print:w-1/2">{renderInternalPage(spread.rightBlocks,spread.pageNumberRight,spread.id,'right')}</div></div>))} {showPrintDialog && <PrintDialog onClose={() => setShowPrintDialog(false)} />}</div>;
+
   return (
     <div className="min-h-screen bg-stone-800 p-4 lg:p-8 font-sans text-stone-900">
       <nav className="sticky top-0 z-[100] bg-white shadow-lg mb-8 print:hidden flex flex-col">
