@@ -16,7 +16,7 @@ interface EditableTextProps {
 }
 
 const FONT_OPTIONS = [
-    { label: 'Default', value: '' },
+    { label: 'Font: Default', value: '' },
     { label: 'Giornale Antico', value: 'font-chomsky' },
     { label: 'Titolo Elegante', value: 'font-playfair' },
     { label: 'Testo Classico', value: 'font-merriweather' },
@@ -26,15 +26,16 @@ const FONT_OPTIONS = [
     { label: 'A Mano', value: 'font-handwriting' }
 ];
 
-// Misure predefinite per la tendina (corrispondono a fontSizeMod)
+// NUOVA SCALA DIMENSIONI ORDINATA
 const SIZE_OPTIONS = [
-    { label: 'Piccolo', value: -4 },
-    { label: 'Normale', value: 0 },
-    { label: 'Medio', value: 8 },
-    { label: 'Grande', value: 16 },
-    { label: 'Titolo', value: 24 },
-    { label: 'Gigante', value: 48 },
-    { label: 'Mega', value: 80 }
+    { label: 'Default (Reset)', value: 0 },
+    { label: 'Molto Piccolo (-4)', value: -4 },
+    { label: 'Piccolo (-2)', value: -2 },
+    { label: 'Medio (+4)', value: 4 },
+    { label: 'Grande (+8)', value: 8 },
+    { label: 'Molto Grande (+16)', value: 16 },
+    { label: 'Titolo (+24)', value: 24 },
+    { label: 'Enorme (+40)', value: 40 }
 ];
 
 export const EditableText: React.FC<EditableTextProps> = ({ 
@@ -53,6 +54,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const [textColor, setTextColor] = useState<string>(''); 
   const [fontFamily, setFontFamily] = useState<string>(''); 
   const [fontSizeMod, setFontSizeMod] = useState(0); 
+  const [tempFontSize, setTempFontSize] = useState("0"); // Input numerico
 
   const inputRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,6 +63,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
       const foundFont = FONT_OPTIONS.find(f => f.value && className.includes(f.value));
       if (foundFont) setFontFamily(foundFont.value);
   }, [className]);
+
+  useEffect(() => {
+      if (isEditing) setTempFontSize(fontSizeMod.toString());
+  }, [isEditing, fontSizeMod]);
 
   const handleSpeak = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -71,6 +77,12 @@ export const EditableText: React.FC<EditableTextProps> = ({
       utterance.onend = () => setIsSpeaking(false);
       window.speechSynthesis.speak(utterance);
       setIsSpeaking(true);
+  };
+
+  const commitFontSize = () => {
+      const val = parseInt(tempFontSize);
+      if (!isNaN(val)) setFontSizeMod(val);
+      else setTempFontSize(fontSizeMod.toString());
   };
 
   useEffect(() => {
@@ -127,24 +139,28 @@ export const EditableText: React.FC<EditableTextProps> = ({
             </div>
             <div className="w-px h-4 bg-stone-300"></div>
             
-            {/* DIMENSIONE (MENU TENDINA) & COLORE */}
+            {/* DIMENSIONE (MENU + INPUT) */}
             <div className="flex items-center gap-2">
                 <div className="flex items-center bg-white rounded border border-stone-200 h-7">
-                    <button onClick={() => setFontSizeMod(p => p - 2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
+                    <button onClick={() => { const n = fontSizeMod - 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
                     
-                    {/* MENU DIMENSIONI AL POSTO DELL'INPUT */}
+                    {/* TENDINA PREDEFINITA */}
                     <select 
                         value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} 
-                        onChange={(e) => setFontSizeMod(Number(e.target.value))}
+                        onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setFontSizeMod(val);
+                            setTempFontSize(val.toString());
+                        }}
                         className="w-16 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none bg-transparent cursor-pointer"
                     >
-                        <option value="" disabled>--</option>
+                         <option value="" disabled>--</option>
                         {SIZE_OPTIONS.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                     </select>
                     
-                    <button onClick={() => setFontSizeMod(p => p + 2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
+                    <button onClick={() => { const n = fontSizeMod + 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
                 </div>
                 
                 <label className="flex items-center justify-center bg-white w-7 h-7 rounded border border-stone-200 cursor-pointer hover:bg-stone-50" title="Scegli Colore">
