@@ -11,28 +11,42 @@ export const CrosswordGrid = () => {
     return (<div className="w-full max-w-sm mx-auto my-4"><div className="border-2 border-black bg-black p-1"><div className="grid grid-cols-8 gap-px bg-black">{gridMap.flat().map((cell,idx)=>{const r=Math.floor(idx/8);const c=idx%8;const num=numbers.find(n=>n.r===r&&n.c===c);return(<div key={idx} className={`aspect-square relative ${cell===1?'bg-black':'bg-white'}`}>{num&&<span className="absolute top-0.5 left-0.5 text-[8px] font-bold leading-none">{num.n}</span>}</div>)})}</div></div></div>);
 };
 
-// --- CONTROLLI PER AGGIUNGERE BLOCCHI (FLUTTUANTI) ---
+// --- CONTROLLI AGGIUNTA (ADESIVI IN BASSO) ---
 interface AddBlockProps {
     onAdd: (type: BlockType) => void;
     isSidebar?: boolean;
     isPreview: boolean;
-    themeId?: string; // <--- ECCO LA RIGA CHE MANCAVA E CAUSAVA L'ERRORE
+    themeId?: string;
 }
 
 export const AddBlockControls: React.FC<AddBlockProps> = ({ onAdd, isSidebar, isPreview }) => {
   if(isPreview) return null;
+  
+  // MODIFICA QUI: Absolute positioning per fissarlo in basso al contenitore padre
   return (
-    <div className="mt-4 flex justify-center opacity-30 hover:opacity-100 transition-opacity duration-300 group">
-       <div className="flex gap-2 bg-stone-100 p-1 rounded-full border border-stone-300 shadow-sm group-hover:shadow-md transform scale-90 group-hover:scale-100 transition-all">
-          <button onClick={()=>onAdd('headline')} className="p-2 hover:bg-white rounded-full text-stone-600 hover:text-stone-900 flex items-center gap-1" title="Aggiungi Titolo"><Type size={16}/></button>
-          <button onClick={()=>onAdd('paragraph')} className="p-2 hover:bg-white rounded-full text-stone-600 hover:text-stone-900 flex items-center gap-1" title="Aggiungi Testo"><AlignLeft size={16}/></button>
-          <button onClick={()=>onAdd('image')} className="p-2 hover:bg-white rounded-full text-stone-600 hover:text-stone-900 flex items-center gap-1" title="Aggiungi Foto"><ImageIcon size={16}/></button>
+    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-40 opacity-0 hover:opacity-100 transition-opacity duration-300 group w-max">
+       <div className="flex gap-3 bg-stone-900/90 backdrop-blur-sm p-2 rounded-full border border-stone-700 shadow-2xl transform scale-90 group-hover:scale-100 transition-all">
+          <button onClick={()=>onAdd('headline')} className="flex flex-col items-center justify-center w-10 h-10 hover:bg-stone-700 rounded-full text-white transition-colors" title="Titolo">
+            <Type size={18}/>
+          </button>
+          <div className="w-px bg-stone-700 h-10"></div>
+          <button onClick={()=>onAdd('paragraph')} className="flex flex-col items-center justify-center w-10 h-10 hover:bg-stone-700 rounded-full text-white transition-colors" title="Testo">
+            <AlignLeft size={18}/>
+          </button>
+          <div className="w-px bg-stone-700 h-10"></div>
+          <button onClick={()=>onAdd('image')} className="flex flex-col items-center justify-center w-10 h-10 hover:bg-stone-700 rounded-full text-white transition-colors" title="Foto">
+            <ImageIcon size={18}/>
+          </button>
+       </div>
+       {/* Etichetta visibile solo in hover */}
+       <div className="text-center mt-1">
+           <span className="bg-black/70 text-white text-[9px] px-2 py-1 rounded uppercase font-bold tracking-widest">Aggiungi Elemento</span>
        </div>
     </div>
   );
 };
 
-// --- RENDERIZZATORE DI BLOCCHI ---
+// --- RENDER BLOCCHI ---
 interface RenderBlocksProps {
     blocks: ContentBlock[];
     onUpdate: (id: string, value: string, height?: number) => void;
@@ -43,7 +57,7 @@ interface RenderBlocksProps {
 }
 
 export const RenderBlocks: React.FC<RenderBlocksProps> = ({ blocks, onUpdate, onRemove, theme, isSidebar, isPreview }) => (
-  <>
+  <div className="pb-16"> {/* Padding bottom per non coprire l'ultimo elemento con la toolbar */}
     {blocks.map((block) => (
       <div key={block.id} className="group relative mb-4 animate-fade-in-up">
         {!isPreview && (
@@ -80,5 +94,5 @@ export const RenderBlocks: React.FC<RenderBlocksProps> = ({ blocks, onUpdate, on
         )}
       </div>
     ))}
-  </>
+  </div>
 );
