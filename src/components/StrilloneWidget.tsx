@@ -1,11 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag, Scissors, Eraser, Wrench, Maximize, Palette, FileText, Image as ImageIcon, Minimize } from 'lucide-react';
+import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag, Scissors, Eraser, Wrench, Maximize, Palette, FileText, Image as ImageIcon, Minimize, PenTool } from 'lucide-react';
 import { WidgetData, WidgetType } from '../types';
-// IMPORTIAMO IL NUOVO MAGAZZINO ASSET
 import { DEFAULT_ASSETS } from '../assetsData';
 
-// --- FUNZIONE DI COMPRESSIONE IMMAGINI ---
+// --- FONT PER LE FIRME (Iniezione Dinamica) ---
+const SIGNATURE_FONTS = [
+    { name: 'Elegante', family: 'Great Vibes', url: 'https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap' },
+    { name: 'Semplice', family: 'Sacramento', url: 'https://fonts.googleapis.com/css2?family=Sacramento&display=swap' },
+    { name: 'Pennarello', family: 'Permanent Marker', url: 'https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap' },
+    { name: 'Corsivo', family: 'Dancing Script', url: 'https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap' },
+    { name: 'Scarabocchio', family: 'Reenie Beanie', url: 'https://fonts.googleapis.com/css2?family=Reenie+Beanie&display=swap' }
+];
+
 const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -30,14 +37,16 @@ const compressImage = (file: File): Promise<string> => {
 interface WidgetLibraryProps {
     isOpen: boolean;
     onClose: () => void;
-    onAddWidget: (type: WidgetType, content: string, subType?: string) => void;
+    onAddWidget: (type: WidgetType, content: string, subType?: string, fontFamily?: string) => void;
 }
 
 export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, onAddWidget }) => {
-    const [activeTab, setActiveTab] = useState<'mascots' | 'emotions' | 'bubbles' | 'stickers' | 'qr' | 'tools'>('mascots');
+    const [activeTab, setActiveTab] = useState<'mascots' | 'emotions' | 'bubbles' | 'stickers' | 'qr' | 'tools' | 'signatures'>('mascots');
     const [qrLink, setQrLink] = useState('');
     const [qrLabel, setQrLabel] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [signatureName, setSignatureName] = useState('');
+    const [selectedSigFont, setSelectedSigFont] = useState(SIGNATURE_FONTS[0].family);
     
     const [savedQRs, setSavedQRs] = useState<{label: string, link: string}[]>(() => {
         try { const s = localStorage.getItem('saved_qrs'); return s ? JSON.parse(s) : []; } catch(e){return[];}
@@ -45,6 +54,18 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
     const [customMascots, setCustomMascots] = useState<{id: string, label: string, src: string}[]>(() => {
         try { const saved = localStorage.getItem('custom_mascots'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
     });
+
+    // Carica i font dinamicamente
+    useEffect(() => {
+        SIGNATURE_FONTS.forEach(font => {
+            if (!document.querySelector(`link[href="${font.url}"]`)) {
+                const link = document.createElement('link');
+                link.href = font.url;
+                link.rel = 'stylesheet';
+                document.head.appendChild(link);
+            }
+        });
+    }, []);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -82,9 +103,15 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
         setQrLabel('');
         onClose();
     };
+
+    const handleAddSignature = () => {
+        if (!signatureName.trim()) return;
+        onAddWidget('text', signatureName, 'signature', selectedSigFont);
+        setSignatureName('');
+        onClose();
+    };
     
     const loadSavedQR = (link: string) => { onAddWidget('qrcode', link); onClose(); };
-    
     const deleteSavedQR = (idx: number, e: React.MouseEvent) => {
         e.stopPropagation();
         const updated = savedQRs.filter((_, i) => i !== idx);
@@ -107,6 +134,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
 
                 <div className="flex border-b border-stone-200 overflow-x-auto">
                     <button onClick={() => setActiveTab('mascots')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'mascots' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><Smile size={18}/> Personaggi</button>
+                    <button onClick={() => setActiveTab('signatures')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'signatures' ? 'text-indigo-600 border-b-4 border-indigo-600 bg-indigo-50' : 'text-stone-400 hover:bg-stone-50'}`}><PenTool size={18}/> Firme</button>
                     <button onClick={() => setActiveTab('emotions')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'emotions' ? 'text-pink-600 border-b-4 border-pink-600 bg-pink-50' : 'text-stone-400 hover:bg-stone-50'}`}><Heart size={18}/> Emozioni</button>
                     <button onClick={() => setActiveTab('bubbles')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'bubbles' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><MessageCircle size={18}/> Fumetti</button>
                     <button onClick={() => setActiveTab('stickers')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'stickers' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><Gift size={18}/> Oggetti</button>
@@ -134,6 +162,41 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                                 ))}
                             </div>
                         </>
+                    )}
+
+                    {/* TAB FIRME (NUOVO) */}
+                    {activeTab === 'signatures' && (
+                        <div className="space-y-6">
+                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                                <h4 className="font-bold text-indigo-900 mb-2 flex items-center gap-2"><PenTool size={18}/> Firma Digitale</h4>
+                                <input 
+                                    type="text" 
+                                    value={signatureName} 
+                                    onChange={(e) => setSignatureName(e.target.value)}
+                                    placeholder="Scrivi il nome..." 
+                                    className="w-full p-3 rounded-lg border border-indigo-200 mb-4 font-bold text-lg outline-none focus:ring-2 focus:ring-indigo-400"
+                                />
+                                <div className="grid grid-cols-1 gap-2">
+                                    {SIGNATURE_FONTS.map(font => (
+                                        <button 
+                                            key={font.family}
+                                            onClick={() => setSelectedSigFont(font.family)}
+                                            className={`p-3 rounded-lg border text-left transition-all flex justify-between items-center ${selectedSigFont === font.family ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-stone-800 border-stone-200 hover:border-indigo-300'}`}
+                                        >
+                                            <span style={{ fontFamily: font.family, fontSize: '1.2rem' }}>{signatureName || 'Anteprima Firma'}</span>
+                                            {selectedSigFont === font.family && <Check size={16}/>}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button 
+                                    onClick={handleAddSignature}
+                                    disabled={!signatureName}
+                                    className="w-full mt-4 bg-stone-900 text-white py-3 rounded-xl font-bold hover:bg-black disabled:opacity-50 transition-colors"
+                                >
+                                    AGGIUNGI FIRMA
+                                </button>
+                            </div>
+                        </div>
                     )}
 
                     {activeTab === 'emotions' && (
@@ -189,7 +252,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         </div>
                     )}
 
-                    {/* SEZIONE UTILI (AGGIORNATA) */}
+                    {/* SEZIONE UTILI */}
                     {activeTab === 'tools' && (
                         <div className="space-y-3">
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
@@ -202,14 +265,11 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                                 <p className="text-[10px] text-stone-600 mb-2">Cancella oggetti indesiderati.</p>
                                 <a href="https://cleanup.pictures/" target="_blank" rel="noreferrer" className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Cleanup.pictures <ExternalLink size={10}/></a>
                             </div>
-                            
-                            {/* NUOVO STRUMENTO: RIDIMENSIONA */}
                             <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3">
                                 <h4 className="font-bold text-indigo-800 flex items-center gap-2 mb-1 text-sm"><Minimize size={16}/> Ridimensiona Foto</h4>
                                 <p className="text-[10px] text-stone-600 mb-2">Rimpicciolisci o ingrandisci in pixel/percentuale.</p>
                                 <a href="https://www.iloveimg.com/it/ridimensionare-immagine" target="_blank" rel="noreferrer" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">I Love IMG <ExternalLink size={10}/></a>
                             </div>
-
                             <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
                                 <h4 className="font-bold text-purple-800 flex items-center gap-2 mb-1 text-sm"><Maximize size={16}/> Migliora Foto (HD)</h4>
                                 <p className="text-[10px] text-stone-600 mb-2">Rendi nitide le foto sgranate.</p>
