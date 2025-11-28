@@ -57,31 +57,19 @@ const App: React.FC = () => {
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD;
 
-  // --- NUOVA LOGICA SALVATAGGIO CON NOME ---
   const saveProjectToLibrary = () => {
       const name = prompt("Che nome vuoi dare a questo progetto?", data.publicationName || "Nuovo Progetto");
-      if (!name) return; // Utente ha annullato
-
+      if (!name) return;
       try {
           const library = JSON.parse(localStorage.getItem('sek_projects_library') || '[]');
-          
-          // Aggiorniamo il nome nel progetto corrente
           const projectToSave = { ...data, publicationName: name, date: new Date().toLocaleDateString() };
-          setData(projectToSave); // Aggiorna anche a video
-
-          // Cerca se esiste già
+          setData(projectToSave);
           const existingIdx = library.findIndex((p: NewspaperData) => p.publicationName === name);
-          
           if (existingIdx >= 0) {
-              if (confirm("Esiste già un progetto con questo nome. Sovrascrivere?")) {
-                  library[existingIdx] = projectToSave;
-              } else { return; }
-          } else {
-              library.push(projectToSave);
-          }
-          
+              if (confirm("Esiste già un progetto con questo nome. Sovrascrivere?")) { library[existingIdx] = projectToSave; } else { return; }
+          } else { library.push(projectToSave); }
           localStorage.setItem('sek_projects_library', JSON.stringify(library));
-          alert("Progetto salvato con successo!");
+          alert("Progetto salvato!");
       } catch (e) { alert("Memoria piena. Usa 'Scarica Backup'."); }
   };
 
@@ -164,22 +152,9 @@ const App: React.FC = () => {
              <ImageSpot src={data.articles['lead'].imageUrl} onChange={(v) => updateArticle('lead', 'imageUrl', v)} className={`w-full mb-4 ${currentTheme.borderClass} border shadow-sm ${isPoster ? 'flex-1 object-cover min-h-[500px]' : ''}`} context={data.articles['lead'].headline} autoHeight={!isPoster} filters={currentTheme.imageFilter} enableResizing={!isPreviewMode} customHeight={data.articles['lead'].customHeight} onHeightChange={(h) => updateArticle('lead', 'customHeight', h)}/>
              {!isPoster && (<div className={`columns-2 gap-6 [column-rule:1px_solid_${isDigital?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.1)'}] ${currentTheme.bodyFont} text-sm text-justify leading-relaxed`}><EditableText value={data.articles['lead'].content} onChange={(v) => updateArticle('lead', 'content', v)} multiline={true} aiEnabled={!isPreviewMode} aiContext="Articolo principale" mode="body"/></div>)}
           </article>
-          {/* TOOLBAR FRONT PAGE (CENTRALE) */}
-          {!isPoster && (
-            <div className={`${currentTheme.borderClass} border-t-2 pt-4 mt-2`}>
-                <RenderBlocks blocks={data.frontPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('front',id,v,h)} onRemove={(id:string)=>removeBlock('front',id)} theme={currentTheme} isPreview={isPreviewMode}/>
-                <AddBlockControls onAdd={(t:BlockType)=>addBlock('front',t)} themeId={data.themeId} isPreview={isPreviewMode}/>
-            </div>
-          )}
+          {!isPoster && (<div className={`${currentTheme.borderClass} border-t-2 pt-4 mt-2`}><RenderBlocks blocks={data.frontPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('front',id,v,h)} onRemove={(id:string)=>removeBlock('front',id)} theme={currentTheme} isPreview={isPreviewMode}/><AddBlockControls onAdd={(t:BlockType)=>addBlock('front',t)} themeId={data.themeId} isPreview={isPreviewMode}/></div>)}
         </div>
-        {!isPoster && (<div className={`col-span-4 ${currentTheme.borderClass} border-l pl-4 flex flex-col gap-6`}><div className={`${currentTheme.borderClass} border-2 p-3 bg-stone-200/50 text-stone-800`}><h3 className="font-sans font-bold uppercase text-sm border-b mb-2">In Questo Numero</h3><EditableText value={data.indexContent} onChange={(v)=>updateMeta('indexContent',v)} multiline={true} className="text-sm font-serif" aiEnabled={!isPreviewMode} aiContext="Indice" mode="summary"/></div><article><EditableText value={data.articles['sidebar'].headline} onChange={(v)=>updateArticle('sidebar','headline',v)} className={`${currentTheme.headlineFont} text-2xl font-bold mb-2`} aiEnabled={!isPreviewMode} aiContext="Titolo spalla" mode="headline"/><EditableText value={data.articles['sidebar'].content} onChange={(v)=>updateArticle('sidebar','content',v)} multiline={true} className="text-xs text-justify" aiEnabled={!isPreviewMode} aiContext="Articolo spalla" mode="body"/></article>
-        
-        {/* TOOLBAR SIDEBAR */}
-        <div className="mt-4 border-t pt-4">
-            <RenderBlocks blocks={data.sidebarBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('sidebar',id,v,h)} onRemove={(id:string)=>removeBlock('sidebar',id)} theme={currentTheme} isSidebar={true} isPreview={isPreviewMode}/>
-            <AddBlockControls onAdd={(t:BlockType)=>addBlock('sidebar',t)} isSidebar={true} themeId={data.themeId} isPreview={isPreviewMode}/>
-        </div>
-        </div>)}
+        {!isPoster && (<div className={`col-span-4 ${currentTheme.borderClass} border-l pl-4 flex flex-col gap-6`}><div className={`${currentTheme.borderClass} border-2 p-3 bg-stone-200/50 text-stone-800`}><h3 className="font-sans font-bold uppercase text-sm border-b mb-2">In Questo Numero</h3><EditableText value={data.indexContent} onChange={(v)=>updateMeta('indexContent',v)} multiline={true} className="text-sm font-serif" aiEnabled={!isPreviewMode} aiContext="Indice" mode="summary"/></div><article><EditableText value={data.articles['sidebar'].headline} onChange={(v)=>updateArticle('sidebar','headline',v)} className={`${currentTheme.headlineFont} text-2xl font-bold mb-2`} aiEnabled={!isPreviewMode} aiContext="Titolo spalla" mode="headline"/><EditableText value={data.articles['sidebar'].content} onChange={(v)=>updateArticle('sidebar','content',v)} multiline={true} className="text-xs text-justify" aiEnabled={!isPreviewMode} aiContext="Articolo spalla" mode="body"/></article><div className="mt-4 border-t pt-4"><RenderBlocks blocks={data.sidebarBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('sidebar',id,v,h)} onRemove={(id:string)=>removeBlock('sidebar',id)} theme={currentTheme} isSidebar={true} isPreview={isPreviewMode}/><AddBlockControls onAdd={(t:BlockType)=>addBlock('sidebar',t)} isSidebar={true} themeId={data.themeId} isPreview={isPreviewMode}/></div></div>)}
       </div>
     </div>
   );
@@ -188,11 +163,7 @@ const App: React.FC = () => {
     <div className={`w-full ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative print:w-full shadow-xl print:shadow-none print:break-after-page group/page ${currentTheme.textClass} flex flex-col`} style={customPageStyle}>
        <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50"></div>
        {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilterInternal"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilterInternal)" /></svg></div>)}
-       <div className="flex-1 overflow-hidden flex flex-col relative z-30">
-            <RenderBlocks blocks={blocks} onUpdate={(id:string,v:string,h?:number)=>updateBlockInSpread(sid,side,id,v,h)} onRemove={(id:string)=>removeBlockInSpread(sid,side,id)} theme={currentTheme} isPreview={isPreviewMode}/>
-            {/* TOOLBAR PAGINE INTERNE */}
-            <AddBlockControls onAdd={(t:BlockType)=>addBlockToSpread(sid,side,t)} themeId={data.themeId} isPreview={isPreviewMode}/>
-       </div>
+       <div className="flex-1 overflow-hidden flex flex-col relative z-30"><RenderBlocks blocks={blocks} onUpdate={(id:string,v:string,h?:number)=>updateBlockInSpread(sid,side,id,v,h)} onRemove={(id:string)=>removeBlockInSpread(sid,side,id)} theme={currentTheme} isPreview={isPreviewMode}/><div className="mt-auto"><AddBlockControls onAdd={(t:BlockType)=>addBlockToSpread(sid,side,t)} themeId={data.themeId} isPreview={isPreviewMode}/></div></div>
        <div className="mt-4 text-center text-xs font-bold flex-shrink-0 relative z-30">Pagina {pn}</div>
     </div>
   );
@@ -208,12 +179,20 @@ const App: React.FC = () => {
             <EditableText value={data.articles['backMain'].content} onChange={(v)=>updateArticle('backMain','content',v)} multiline={true} className={`columns-2 gap-6 [column-rule:1px_solid_${isDigital?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.1)'}] text-sm text-justify`} aiEnabled={!isPreviewMode} mode="body"/>
         </article>
         <div className="grid grid-cols-2 gap-8 mt-auto relative z-30"><div className={`border ${currentTheme.borderClass} p-4`}><h3 className="uppercase font-bold text-sm mb-2">Meteo</h3><EditableText value={data.articles['weather'].content} onChange={(v)=>updateArticle('weather','content',v)} multiline={true} className="font-serif text-sm" aiEnabled={!isPreviewMode} mode="body"/></div><div className={`border ${currentTheme.borderClass} p-4 text-center`}><h3 className="uppercase font-bold text-sm mb-2">Vignetta / Dedica</h3><ImageSpot src={data.articles['comic'].imageUrl} onChange={(v)=>updateArticle('comic','imageUrl',v)} className="w-full" autoHeight={true} filters={currentTheme.imageFilter} context={data.articles['comic'].content}/><EditableText value={data.articles['comic'].content} onChange={(v)=>updateArticle('comic','content',v)} className="text-xs italic mt-2" aiEnabled={!isPreviewMode} mode="headline"/></div></div>
-        
-        {/* TOOLBAR BACK PAGE */}
-        <div className="mt-4">
-            <RenderBlocks blocks={data.backPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('back',id,v,h)} onRemove={(id:string)=>removeBlock('back',id)} theme={currentTheme} isPreview={isPreviewMode}/>
-            <AddBlockControls onAdd={(t:BlockType)=>addBlock('back',t)} themeId={data.themeId} isPreview={isPreviewMode}/>
-        </div>
      </div>
   );
-  // ... (rest of the return statement)
+
+  if (showWelcomeScreen && !localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={onFileInputChange}/><WelcomeScreen hasSavedData={false} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
+  if (showWelcomeScreen && localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={onFileInputChange}/><WelcomeScreen hasSavedData={true} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
+  
+  return (
+    <div className="min-h-screen bg-stone-800 p-4 lg:p-8 font-sans text-stone-900">
+      <nav className="sticky top-0 z-[100] bg-white shadow-lg mb-8 print:hidden flex flex-col">
+        <div className="max-w-[1600px] mx-auto w-full p-3 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3 mr-4">
+                <button onClick={() => setShowDashboard(true)} className="bg-stone-100 hover:bg-stone-200 p-2 rounded-lg text-stone-700 flex items-center gap-2 font-bold text-xs uppercase" title="Torna alla Home"><Home size={18}/> Home</button>
+                <label className="cursor-pointer group relative" title="Carica Logo">
+                    {appConfig.logo ? <img src={appConfig.logo} alt="Logo" className="h-12 w-auto object-contain" /> : <div className="h-12 w-12 bg-stone-200 rounded-lg flex items-center justify-center group-hover:bg-stone-300 transition-colors"><Newspaper size={28} className="text-stone-500"/></div>}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload}/>
+                </label>
+                <div className="flex flex-col justify-center leading-none select-none"><span className="font-oswald font-bold text-2xl uppercase text-stone-900 tracking-tighter">THE SEK</span><span className="font-oswald font-medium text-[10px] uppercase text-stone-500 tracking-[0.3em]">CREATOR & DESIGNER<
