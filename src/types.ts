@@ -41,7 +41,6 @@ export interface ExtraSpread {
 
 export type ThemeId = 'classic' | 'modern' | 'vintage' | 'usa' | 'germany' | 'france' | 'italy' | 'digital' | 'birthday' | 'christmas' | 'easter';
 
-// --- QUESTA È LA PARTE CHE MANCAVA ---
 export interface ThemeConfig {
   id: ThemeId;
   label: string;
@@ -107,6 +106,7 @@ export interface WidgetData {
 }
 
 export interface NewspaperData {
+  projectLabel?: string; // <--- NUOVO CAMPO: Nome del salvataggio (diverso dalla testata)
   themeId: ThemeId;
   eventType: EventType;
   formatType: FormatType;
