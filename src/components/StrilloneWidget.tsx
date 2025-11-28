@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag, Scissors, Eraser, Wrench, Maximize, Palette, FileText, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag, Scissors, Eraser, Wrench, Maximize, Palette, FileText, Image as ImageIcon, Minimize } from 'lucide-react';
 import { WidgetData, WidgetType } from '../types';
 
 // --- ASSET PREIMPOSTATI ---
@@ -154,7 +154,6 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                     <button onClick={() => setActiveTab('bubbles')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'bubbles' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><MessageCircle size={18}/> Fumetti</button>
                     <button onClick={() => setActiveTab('stickers')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'stickers' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><Gift size={18}/> Oggetti</button>
                     <button onClick={() => setActiveTab('qr')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'qr' ? 'text-purple-600 border-b-4 border-purple-600 bg-purple-50' : 'text-stone-400 hover:bg-stone-50'}`}><QrCode size={18}/> QR</button>
-                    {/* TAB UTILI */}
                     <button onClick={() => setActiveTab('tools')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'tools' ? 'text-green-600 border-b-4 border-green-600 bg-green-50' : 'text-stone-400 hover:bg-stone-50'}`}><Wrench size={18}/> Utili</button>
                 </div>
 
@@ -233,7 +232,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         </div>
                     )}
 
-                    {/* NUOVA SEZIONE UTILI (AGGIORNATA) */}
+                    {/* SEZIONE UTILI (AGGIORNATA CON I LOVE IMG) */}
                     {activeTab === 'tools' && (
                         <div className="space-y-3">
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
@@ -246,9 +245,17 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                                 <p className="text-[10px] text-stone-600 mb-2">Cancella oggetti indesiderati.</p>
                                 <a href="https://cleanup.pictures/" target="_blank" rel="noreferrer" className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Cleanup.pictures <ExternalLink size={10}/></a>
                             </div>
+                            
+                            {/* NUOVO STRUMENTO: RIDIMENSIONA */}
+                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+                                <h4 className="font-bold text-indigo-800 flex items-center gap-2 mb-1 text-sm"><Minimize size={16}/> Ridimensiona Foto</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Rimpicciolisci o ingrandisci in pixel/percentuale.</p>
+                                <a href="https://www.iloveimg.com/it/ridimensionare-immagine" target="_blank" rel="noreferrer" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">I Love IMG <ExternalLink size={10}/></a>
+                            </div>
+
                             <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
                                 <h4 className="font-bold text-purple-800 flex items-center gap-2 mb-1 text-sm"><Maximize size={16}/> Migliora Foto (HD)</h4>
-                                <p className="text-[10px] text-stone-600 mb-2">Rendi nitide le foto sgranate per la stampa A3.</p>
+                                <p className="text-[10px] text-stone-600 mb-2">Rendi nitide le foto sgranate.</p>
                                 <a href="https://www.upscale.media/it" target="_blank" rel="noreferrer" className="w-full bg-purple-600 hover:bg-purple-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Upscale.media <ExternalLink size={10}/></a>
                             </div>
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
@@ -275,9 +282,6 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
     );
 };
 
-// (Le altre parti sotto rimangono uguali nel file, non serviva cambiarle ma per sicurezza l'ho fatto completo sopra)
-// ... Copia solo fino alla fine del file che vedi sopra ...
-// --- DRAGGABLE ITEM (Invariato) ---
 interface DraggableWidgetProps {
     widget: WidgetData;
     isSelected: boolean;
