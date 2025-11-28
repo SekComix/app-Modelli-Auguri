@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag, Scissors, Eraser, Wrench } from 'lucide-react';
+import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag, Scissors, Eraser, Wrench, Maximize, Palette, FileText, Image as ImageIcon } from 'lucide-react';
 import { WidgetData, WidgetType } from '../types';
 
 // --- ASSET PREIMPOSTATI ---
@@ -48,6 +48,7 @@ const DEFAULT_ASSETS = {
     ]
 };
 
+// --- FUNZIONE DI COMPRESSIONE IMMAGINI ---
 const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -153,7 +154,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                     <button onClick={() => setActiveTab('bubbles')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'bubbles' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><MessageCircle size={18}/> Fumetti</button>
                     <button onClick={() => setActiveTab('stickers')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'stickers' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><Gift size={18}/> Oggetti</button>
                     <button onClick={() => setActiveTab('qr')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'qr' ? 'text-purple-600 border-b-4 border-purple-600 bg-purple-50' : 'text-stone-400 hover:bg-stone-50'}`}><QrCode size={18}/> QR</button>
-                    {/* NUOVA TAB TOOLS */}
+                    {/* TAB UTILI */}
                     <button onClick={() => setActiveTab('tools')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'tools' ? 'text-green-600 border-b-4 border-green-600 bg-green-50' : 'text-stone-400 hover:bg-stone-50'}`}><Wrench size={18}/> Utili</button>
                 </div>
 
@@ -232,25 +233,38 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         </div>
                     )}
 
-                    {/* NUOVA SEZIONE STRUMENTI */}
+                    {/* NUOVA SEZIONE UTILI (AGGIORNATA) */}
                     {activeTab === 'tools' && (
-                        <div className="space-y-4">
-                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                                <h4 className="font-bold text-blue-800 flex items-center gap-2 mb-2"><Scissors size={18}/> Rimuovi Sfondo</h4>
-                                <p className="text-xs text-stone-600 mb-3">Serve per ritagliare le persone e creare "Mascotte" perfette.</p>
-                                <a href="https://www.remove.bg/it/upload" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm">Apri Remove.bg <ExternalLink size={12}/></a>
+                        <div className="space-y-3">
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                                <h4 className="font-bold text-blue-800 flex items-center gap-2 mb-1 text-sm"><Scissors size={16}/> Rimuovi Sfondo</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Ritaglia persone e oggetti per mascotte.</p>
+                                <a href="https://www.remove.bg/it/upload" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Remove.bg <ExternalLink size={10}/></a>
                             </div>
-                            
-                            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                                <h4 className="font-bold text-green-800 flex items-center gap-2 mb-2"><Eraser size={18}/> Pulisci Foto</h4>
-                                <p className="text-xs text-stone-600 mb-3">Cancella oggetti o persone indesiderate dalle tue foto.</p>
-                                <a href="https://cleanup.pictures/" target="_blank" rel="noreferrer" className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm">Apri Cleanup.pictures <ExternalLink size={12}/></a>
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                                <h4 className="font-bold text-green-800 flex items-center gap-2 mb-1 text-sm"><Eraser size={16}/> Pulisci Foto</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Cancella oggetti indesiderati.</p>
+                                <a href="https://cleanup.pictures/" target="_blank" rel="noreferrer" className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Cleanup.pictures <ExternalLink size={10}/></a>
                             </div>
-
-                            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                                <h4 className="font-bold text-orange-800 flex items-center gap-2 mb-2"><Mic size={18}/> Registra Voce</h4>
-                                <p className="text-xs text-stone-600 mb-3">Registra un messaggio vocale e ottieni il link per il QR.</p>
-                                <a href="https://vocaroo.com/" target="_blank" rel="noreferrer" className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm">Apri Vocaroo <ExternalLink size={12}/></a>
+                            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
+                                <h4 className="font-bold text-purple-800 flex items-center gap-2 mb-1 text-sm"><Maximize size={16}/> Migliora Foto (HD)</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Rendi nitide le foto sgranate per la stampa A3.</p>
+                                <a href="https://www.upscale.media/it" target="_blank" rel="noreferrer" className="w-full bg-purple-600 hover:bg-purple-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Upscale.media <ExternalLink size={10}/></a>
+                            </div>
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                                <h4 className="font-bold text-gray-800 flex items-center gap-2 mb-1 text-sm"><Palette size={16}/> Colora Foto B/N</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Trasforma vecchie foto in bianco e nero.</p>
+                                <a href="https://palette.fm/" target="_blank" rel="noreferrer" className="w-full bg-gray-600 hover:bg-gray-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Palette.fm <ExternalLink size={10}/></a>
+                            </div>
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                                <h4 className="font-bold text-red-800 flex items-center gap-2 mb-1 text-sm"><FileText size={16}/> Gestione PDF</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Unisci Fronte e Retro in un unico file.</p>
+                                <a href="https://www.ilovepdf.com/it" target="_blank" rel="noreferrer" className="w-full bg-red-600 hover:bg-red-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">I Love PDF <ExternalLink size={10}/></a>
+                            </div>
+                            <div className="bg-teal-50 border border-teal-200 rounded-xl p-3">
+                                <h4 className="font-bold text-teal-800 flex items-center gap-2 mb-1 text-sm"><ImageIcon size={16}/> Archivio Vintage</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Foto d'epoca gratuite per riempire.</p>
+                                <a href="https://www.pexels.com/it-it/search/vintage/" target="_blank" rel="noreferrer" className="w-full bg-teal-600 hover:bg-teal-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Pexels Vintage <ExternalLink size={10}/></a>
                             </div>
                         </div>
                     )}
@@ -261,6 +275,8 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
     );
 };
 
+// (Le altre parti sotto rimangono uguali nel file, non serviva cambiarle ma per sicurezza l'ho fatto completo sopra)
+// ... Copia solo fino alla fine del file che vedi sopra ...
 // --- DRAGGABLE ITEM (Invariato) ---
 interface DraggableWidgetProps {
     widget: WidgetData;
