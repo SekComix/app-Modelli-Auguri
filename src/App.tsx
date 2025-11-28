@@ -57,60 +57,25 @@ const App: React.FC = () => {
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD;
 
-  // --- LOGICA SALVATAGGIO CORRETTA ---
   const saveProjectToLibrary = () => {
-      // Default value: usa il nome progetto esistente, o il nome pubblicazione, o "Nuovo Progetto"
       const defaultName = data.projectLabel || data.publicationName || "Nuovo Progetto";
       const name = prompt("Che nome vuoi dare a questo progetto?", defaultName);
-      
       if (!name) return;
-
       try {
           const library = JSON.parse(localStorage.getItem('sek_projects_library') || '[]');
-          
-          // AGGIORNA SOLO IL PROJECTLABEL, NON LA PUBLICATION NAME
-          const projectToSave = { 
-              ...data, 
-              projectLabel: name, // Questo è il nome del file
-              date: new Date().toLocaleDateString() 
-          };
-          
+          const projectToSave = { ...data, projectLabel: name, date: new Date().toLocaleDateString() };
           setData(projectToSave);
-
-          // Cerca per projectLabel (Nome File) invece che publicationName
           const existingIdx = library.findIndex((p: NewspaperData) => p.projectLabel === name);
-          
           if (existingIdx >= 0) {
-              if (confirm(`Esiste già un progetto salvato come "${name}". Sovrascrivere?`)) {
-                  library[existingIdx] = projectToSave;
-              } else { return; }
-          } else {
-              library.push(projectToSave);
-          }
-          
+              if (confirm(`Esiste già un progetto salvato come "${name}". Sovrascrivere?`)) { library[existingIdx] = projectToSave; } else { return; }
+          } else { library.push(projectToSave); }
           localStorage.setItem('sek_projects_library', JSON.stringify(library));
           alert("Progetto salvato correttamente!");
       } catch (e) { alert("Memoria piena. Usa 'Scarica Backup'."); }
   };
 
   const loadProjectFromDashboard = (project: NewspaperData) => { setData(project); setShowDashboard(false); setShowWelcomeScreen(false); };
-
-  const handleImportFile = (file: File) => {
-      const reader = new FileReader();
-      reader.onload = (event) => { 
-          try { 
-              const importedData = JSON.parse(event.target?.result as string); 
-              if (importedData && importedData.themeId) { 
-                  setData({ ...importedData, widgets: importedData.widgets || [] }); 
-                  setShowDashboard(false); 
-                  setShowWelcomeScreen(false);
-                  alert("Caricato!"); 
-              } else { alert("File non valido."); } 
-          } catch (err) { alert("Errore caricamento."); } 
-      }; 
-      reader.readAsText(file);
-  };
-
+  const handleImportFile = (file: File) => { const reader = new FileReader(); reader.onload = (event) => { try { const importedData = JSON.parse(event.target?.result as string); if (importedData && importedData.themeId) { setData({ ...importedData, widgets: importedData.widgets || [] }); setShowDashboard(false); setShowWelcomeScreen(false); alert("Caricato!"); } else { alert("File non valido."); } } catch (err) { alert("Errore caricamento."); } }; reader.readAsText(file); };
   const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) handleImportFile(e.target.files[0]); };
   const handleConfirmSave = () => { const finalName = backupFilename.endsWith('.json') ? backupFilename : `${backupFilename}.json`; const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = finalName; document.body.appendChild(link); link.click(); document.body.removeChild(link); setShowSaveDialog(false); };
   const handleConfirmReset = () => { setData(INITIAL_DATA); setAppConfig({ title: 'THE SEK CREATOR AND DESIGNER', logo: '' }); localStorage.removeItem('newspaper_data'); setShowWidgetLibrary(false); setShowResetDialog(false); setShowDashboard(true); setShowWelcomeScreen(false); };
@@ -141,7 +106,32 @@ const App: React.FC = () => {
   const addBlockToSpread = (sid: string, side: 'left'|'right', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type==='image'?'':'Nuovo...', height: type === 'image' ? 300 : undefined }; setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: [...(side==='left'?s.leftBlocks:s.rightBlocks), newBlock] } : s) })); };
   const updateBlockInSpread = (sid: string, side: 'left'|'right', bid: string, val: string, height?: number) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].map(b => b.id===bid ? {...b, content: val, height: height !== undefined ? height : b.height } : b) } : s) })); };
   const removeBlockInSpread = (sid: string, side: 'left'|'right', bid: string) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].filter(b => b.id !== bid) } : s) })); };
-  const handleAddWidget = (type: WidgetType, content: string, subType?: string) => { const newWidget: WidgetData = { id: `widget-${Date.now()}`, type, content, text: type === 'bubble' ? 'Clicca...' : type === 'text' ? 'TESTO' : undefined, style: { x: window.innerWidth/2-100, y: window.scrollY+300, width: 200, height: 200, rotation: 0, zIndex: 50, fontSize: 24, color: '#000000', fontFamily: 'Chomsky', flipX: false } }; if (type === 'sticker' && !subType) { newWidget.style.width = 100; newWidget.style.height = 100; } setData(prev => ({ ...prev, widgets: [...(prev.widgets || []), newWidget] })); setSelectedWidgetId(newWidget.id); setShowWidgetLibrary(false); };
+  
+  // --- FIX: Supporto per fontFamily personalizzato nelle Firme ---
+  const handleAddWidget = (type: WidgetType, content: string, subType?: string, fontFamily?: string) => { 
+      const newWidget: WidgetData = { 
+          id: `widget-${Date.now()}`, 
+          type, 
+          content, 
+          text: type === 'bubble' ? 'Clicca...' : (type === 'text' ? content : undefined), 
+          style: { 
+              x: window.innerWidth/2-100, 
+              y: window.scrollY+300, 
+              width: type === 'sticker' ? 100 : 200, 
+              height: type === 'sticker' ? 100 : 100, 
+              rotation: 0, 
+              zIndex: 50, 
+              fontSize: 24, 
+              color: '#000000', 
+              fontFamily: fontFamily || 'Chomsky', // Usa il font passato o Chomsky di default
+              flipX: false 
+          } 
+      }; 
+      setData(prev => ({ ...prev, widgets: [...(prev.widgets || []), newWidget] })); 
+      setSelectedWidgetId(newWidget.id); 
+      setShowWidgetLibrary(false); 
+  };
+  
   const setWidgets = (action: React.SetStateAction<WidgetData[]>) => { setData(prev => { const newWidgets = typeof action === 'function' ? action(prev.widgets || []) : action; return { ...prev, widgets: newWidgets }; }); };
 
   const pageHeightClass = "h-[1350px] overflow-hidden";
@@ -200,9 +190,8 @@ const App: React.FC = () => {
         </article>
         <div className="grid grid-cols-2 gap-8 mt-auto relative z-30">
             <div className={`border ${currentTheme.borderClass} p-4`}><h3 className="uppercase font-bold text-sm mb-2">Meteo</h3><EditableText value={data.articles['weather'].content} onChange={(v)=>updateArticle('weather','content',v)} multiline={true} className="font-serif text-sm" aiEnabled={!isPreviewMode} mode="body"/></div>
-            <div className={`border ${currentTheme.borderClass} p-4 text-center`}><h3 className="uppercase font-bold text-sm mb-2">Vignetta / Dedica</h3><ImageSpot src={data.articles['comic'].imageUrl} onChange={(v)=>updateArticle('comic','imageUrl',v)} className="w-full" autoHeight={true} filters={currentTheme.imageFilter} context={data.articles['comic'].content}/><EditableText value={data.articles['comic'].content} onChange={(v)=>updateArticle('comic','content',v)} className="text-xs italic mt-2" aiEnabled={!isPreviewMode} mode="headline"/></div>
+            <div className={`border ${currentTheme.borderClass} p-4 text-center`}><h3 className="uppercase font-bold text-sm mb-2">Vignetta / Dedica</h3><ImageSpot src={data.articles['comic'].imageUrl} onChange={(v)=>updateArticle('comic','imageUrl',v)} className="w-full" autoHeight={true} filters={currentTheme.imageFilter} context={data.articles['comic'].content}/><EditableText value={data.articles['comic'].content} onChange={(v)=>updateArticle('comic','content',v)} className="text-xs italic mt-2" aiEnabled={!isPreviewMode} mode="headline" multiline={true}/></div>
         </div>
-        {/* TOOLBAR ANCHE QUI (CORRETTO) */}
         <div className="mt-4">
              <RenderBlocks blocks={data.backPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('back',id,v,h)} onRemove={(id:string)=>removeBlock('back',id)} theme={currentTheme} isPreview={isPreviewMode}/>
              <AddBlockControls onAdd={(t:BlockType)=>addBlock('back',t)} themeId={data.themeId} isPreview={isPreviewMode}/>
