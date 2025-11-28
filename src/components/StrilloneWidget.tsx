@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag } from 'lucide-react';
+import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag, Scissors, Eraser, Wrench } from 'lucide-react';
 import { WidgetData, WidgetType } from '../types';
 
 // --- ASSET PREIMPOSTATI ---
@@ -48,8 +48,6 @@ const DEFAULT_ASSETS = {
     ]
 };
 
-// --- FUNZIONE DI COMPRESSIONE IMMAGINI ---
-// Riduce le immagini troppo grandi per evitare crash
 const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -59,13 +57,13 @@ const compressImage = (file: File): Promise<string> => {
             img.src = event.target?.result as string;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 300; // Dimensione ottimale per sticker
+                const MAX_WIDTH = 300; 
                 const scaleSize = MAX_WIDTH / img.width;
                 canvas.width = MAX_WIDTH;
                 canvas.height = img.height * scaleSize;
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-                resolve(canvas.toDataURL('image/jpeg', 0.7)); // Comprime qualità al 70%
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
             };
         };
     });
@@ -78,9 +76,9 @@ interface WidgetLibraryProps {
 }
 
 export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, onAddWidget }) => {
-    const [activeTab, setActiveTab] = useState<'mascots' | 'emotions' | 'bubbles' | 'stickers' | 'qr'>('mascots');
+    const [activeTab, setActiveTab] = useState<'mascots' | 'emotions' | 'bubbles' | 'stickers' | 'qr' | 'tools'>('mascots');
     const [qrLink, setQrLink] = useState('');
-    const [qrLabel, setQrLabel] = useState(''); // Nuovo campo Etichetta QR
+    const [qrLabel, setQrLabel] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
     const [savedQRs, setSavedQRs] = useState<{label: string, link: string}[]>(() => {
@@ -90,63 +88,40 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
         try { const saved = localStorage.getItem('custom_mascots'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
     });
 
-    // UPLOAD SICURO (Con compressione)
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Controllo tipo file
-            if (!file.type.startsWith('image/')) {
-                alert("Per favore carica solo immagini (JPG, PNG).");
-                return;
-            }
-            
+            if (!file.type.startsWith('image/')) { alert("Solo immagini."); return; }
             setIsLoading(true);
             try {
-                // Comprimi immagine prima di salvare
                 const compressedBase64 = await compressImage(file);
-                
                 onAddWidget('mascot', compressedBase64, 'custom');
                 const newMascot = { id: `custom-${Date.now()}`, label: 'Mio Personaggio', src: compressedBase64 };
-                
                 const updatedMascots = [...customMascots, newMascot];
                 setCustomMascots(updatedMascots);
-                
-                try { 
-                    localStorage.setItem('custom_mascots', JSON.stringify(updatedMascots)); 
-                } catch (e) { 
-                    alert("Memoria browser piena. L'immagine è stata aggiunta al giornale ma non verrà salvata per la prossima volta."); 
-                }
-            } catch (err) {
-                alert("Errore nel caricamento immagine.");
-            } finally {
-                setIsLoading(false);
-            }
+                try { localStorage.setItem('custom_mascots', JSON.stringify(updatedMascots)); } catch (e) { alert("Memoria piena."); }
+            } catch (err) { alert("Errore upload."); } finally { setIsLoading(false); }
         }
     };
 
     const removeCustomMascot = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if(!confirm("Vuoi eliminare questa immagine dalla libreria?")) return;
+        if(!confirm("Vuoi eliminare questa immagine?")) return;
         const updated = customMascots.filter(m => m.id !== id);
         setCustomMascots(updated);
         localStorage.setItem('custom_mascots', JSON.stringify(updated));
     };
 
-    // GENERAZIONE QR CON ETICHETTA
     const handleGenerateQR = () => {
         if (!qrLink) return;
         onAddWidget('qrcode', qrLink);
-        
-        // Usa l'etichetta dell'utente o un default
         const finalLabel = qrLabel.trim() || `Link ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-        
         const newEntry = { label: finalLabel, link: qrLink };
         const updatedQRs = [newEntry, ...savedQRs].slice(0, 10); 
         setSavedQRs(updatedQRs);
         localStorage.setItem('saved_qrs', JSON.stringify(updatedQRs));
-        
         setQrLink('');
-        setQrLabel(''); // Resetta campo
+        setQrLabel('');
         onClose();
     };
     
@@ -177,7 +152,9 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                     <button onClick={() => setActiveTab('emotions')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'emotions' ? 'text-pink-600 border-b-4 border-pink-600 bg-pink-50' : 'text-stone-400 hover:bg-stone-50'}`}><Heart size={18}/> Emozioni</button>
                     <button onClick={() => setActiveTab('bubbles')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'bubbles' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><MessageCircle size={18}/> Fumetti</button>
                     <button onClick={() => setActiveTab('stickers')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'stickers' ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50' : 'text-stone-400 hover:bg-stone-50'}`}><Gift size={18}/> Oggetti</button>
-                    <button onClick={() => setActiveTab('qr')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'qr' ? 'text-purple-600 border-b-4 border-purple-600 bg-purple-50' : 'text-stone-400 hover:bg-stone-50'}`}><QrCode size={18}/> QR & Audio</button>
+                    <button onClick={() => setActiveTab('qr')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'qr' ? 'text-purple-600 border-b-4 border-purple-600 bg-purple-50' : 'text-stone-400 hover:bg-stone-50'}`}><QrCode size={18}/> QR</button>
+                    {/* NUOVA TAB TOOLS */}
+                    <button onClick={() => setActiveTab('tools')} className={`flex-1 py-4 px-2 text-xs font-bold uppercase flex flex-col items-center gap-1 ${activeTab === 'tools' ? 'text-green-600 border-b-4 border-green-600 bg-green-50' : 'text-stone-400 hover:bg-stone-50'}`}><Wrench size={18}/> Utili</button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 bg-stone-100/50">
@@ -185,10 +162,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         <>
                             <label className={`flex items-center gap-3 p-4 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors mb-6 group ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div className="bg-white p-2 rounded-full shadow-sm group-hover:scale-110 transition-transform"><Upload className="text-blue-500" size={20}/></div>
-                                <div>
-                                    <h4 className="font-bold text-blue-900 text-sm">{isLoading ? 'COMPRESSIONE IN CORSO...' : 'CARICA FOTO TUA'}</h4>
-                                    <p className="text-[10px] text-blue-600">Ottimizzata per non bloccare il sito</p>
-                                </div>
+                                <div><h4 className="font-bold text-blue-900 text-sm">{isLoading ? 'CARICAMENTO...' : 'CARICA FOTO TUA'}</h4><p className="text-[10px] text-blue-600">Ottimizzata per il sito</p></div>
                                 <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={handleUpload}/>
                             </label>
                             <div className="grid grid-cols-2 gap-4">
@@ -207,29 +181,20 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
 
                     {activeTab === 'emotions' && (
                         <div className="grid grid-cols-4 gap-4">
-                            {DEFAULT_ASSETS.emotions.map(e => (
-                                <button key={e.id} onClick={() => onAddWidget('sticker', e.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-pink-500 hover:shadow-md transition-all flex flex-col items-center justify-center aspect-square gap-1">
-                                    <span className="text-3xl">{e.content}</span>
-                                    <span className="text-[9px] font-bold text-stone-500 uppercase truncate w-full text-center">{e.label}</span>
-                                </button>
-                            ))}
+                            {DEFAULT_ASSETS.emotions.map(e => (<button key={e.id} onClick={() => onAddWidget('sticker', e.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-pink-500 hover:shadow-md transition-all flex flex-col items-center justify-center aspect-square gap-1"><span className="text-3xl">{e.content}</span><span className="text-[9px] font-bold text-stone-500 uppercase truncate w-full text-center">{e.label}</span></button>))}
                         </div>
                     )}
 
                     {activeTab === 'bubbles' && (
                         <div className="grid grid-cols-2 gap-4">
-                             {DEFAULT_ASSETS.bubbles.map(b => (
-                                <button key={b.id} onClick={() => onAddWidget('bubble', b.svg)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><div className="h-20 w-full" dangerouslySetInnerHTML={{__html: b.svg}} /><span className="text-xs font-bold text-stone-600 uppercase">{b.label}</span></button>
-                            ))}
+                             {DEFAULT_ASSETS.bubbles.map(b => (<button key={b.id} onClick={() => onAddWidget('bubble', b.svg)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><div className="h-20 w-full" dangerouslySetInnerHTML={{__html: b.svg}} /><span className="text-xs font-bold text-stone-600 uppercase">{b.label}</span></button>))}
                             <button onClick={() => onAddWidget('text', '')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><div className="h-20 flex items-center justify-center"><Type size={32} className="text-stone-400"/></div><span className="text-xs font-bold text-stone-600 uppercase">Solo Testo</span></button>
                         </div>
                     )}
 
                      {activeTab === 'stickers' && (
                         <div className="grid grid-cols-3 gap-4">
-                            {DEFAULT_ASSETS.stickers.map(s => (
-                                <button key={s.id} onClick={() => onAddWidget('sticker', s.src || s.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2 aspect-square justify-center">{s.src ? <img src={s.src} className="h-10 w-10 object-contain"/> : <span className="text-4xl">{s.content}</span>}<span className="text-xs font-bold text-stone-600 uppercase truncate w-full text-center">{s.label}</span></button>
-                            ))}
+                            {DEFAULT_ASSETS.stickers.map(s => (<button key={s.id} onClick={() => onAddWidget('sticker', s.src || s.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2 aspect-square justify-center">{s.src ? <img src={s.src} className="h-10 w-10 object-contain"/> : <span className="text-4xl">{s.content}</span>}<span className="text-xs font-bold text-stone-600 uppercase truncate w-full text-center">{s.label}</span></button>))}
                         </div>
                     )}
 
@@ -251,23 +216,42 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                             </div>
                             <button onClick={handleGenerateQR} disabled={!qrLink} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-stone-300 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-105"><QrCode size={20}/> GENERA QR CODE</button>
                             
-                            {/* CRONOLOGIA QR */}
                             {savedQRs.length > 0 && (
                                 <div className="mt-6 border-t pt-4">
                                     <h4 className="font-bold text-stone-600 flex items-center gap-2 mb-3 text-sm"><History size={16}/> I miei QR recenti</h4>
                                     <div className="space-y-2">
                                         {savedQRs.map((qr, idx) => (
                                             <div key={idx} className="flex items-center justify-between bg-white p-2 border rounded shadow-sm">
-                                                <div className="flex flex-col items-start overflow-hidden">
-                                                    <button onClick={() => loadSavedQR(qr.link)} className="text-xs font-bold text-blue-600 hover:underline truncate max-w-[200px] text-left">{qr.label}</button>
-                                                    <span className="text-[10px] text-stone-400 truncate w-full">{qr.link}</span>
-                                                </div>
+                                                <div className="flex flex-col items-start overflow-hidden"><button onClick={() => loadSavedQR(qr.link)} className="text-xs font-bold text-blue-600 hover:underline truncate max-w-[200px] text-left">{qr.label}</button><span className="text-[10px] text-stone-400 truncate w-full">{qr.link}</span></div>
                                                 <button onClick={(e) => deleteSavedQR(idx, e)} className="text-stone-400 hover:text-red-500 p-1"><Trash2 size={12}/></button>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* NUOVA SEZIONE STRUMENTI */}
+                    {activeTab === 'tools' && (
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                <h4 className="font-bold text-blue-800 flex items-center gap-2 mb-2"><Scissors size={18}/> Rimuovi Sfondo</h4>
+                                <p className="text-xs text-stone-600 mb-3">Serve per ritagliare le persone e creare "Mascotte" perfette.</p>
+                                <a href="https://www.remove.bg/it/upload" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm">Apri Remove.bg <ExternalLink size={12}/></a>
+                            </div>
+                            
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                                <h4 className="font-bold text-green-800 flex items-center gap-2 mb-2"><Eraser size={18}/> Pulisci Foto</h4>
+                                <p className="text-xs text-stone-600 mb-3">Cancella oggetti o persone indesiderate dalle tue foto.</p>
+                                <a href="https://cleanup.pictures/" target="_blank" rel="noreferrer" className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm">Apri Cleanup.pictures <ExternalLink size={12}/></a>
+                            </div>
+
+                            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                                <h4 className="font-bold text-orange-800 flex items-center gap-2 mb-2"><Mic size={18}/> Registra Voce</h4>
+                                <p className="text-xs text-stone-600 mb-3">Registra un messaggio vocale e ottieni il link per il QR.</p>
+                                <a href="https://vocaroo.com/" target="_blank" rel="noreferrer" className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm">Apri Vocaroo <ExternalLink size={12}/></a>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -300,7 +284,6 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({ widget, isSelected, o
         const handleMouseMove = (e: MouseEvent | TouchEvent) => {
             const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
             const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
             if (isDragging) {
                 const dx = clientX - dragStart.x;
                 const dy = clientY - dragStart.y;
@@ -312,18 +295,11 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({ widget, isSelected, o
             }
         };
         const handleMouseUp = () => { setIsDragging(false); setIsResizing(false); };
-
         if (isDragging || isResizing) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-            window.addEventListener('touchmove', handleMouseMove, { passive: false });
-            window.addEventListener('touchend', handleMouseUp);
+            window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); window.addEventListener('touchmove', handleMouseMove, { passive: false }); window.addEventListener('touchend', handleMouseUp);
         }
         return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-            window.removeEventListener('touchmove', handleMouseMove);
-            window.removeEventListener('touchend', handleMouseUp);
+            window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); window.removeEventListener('touchmove', handleMouseMove); window.removeEventListener('touchend', handleMouseUp);
         };
     }, [isDragging, isResizing, dragStart, resizeStart, initialPos, initialSize, onUpdate]);
 
@@ -331,74 +307,33 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({ widget, isSelected, o
         if (isEditingText) return;
         const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
         const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-        onSelect();
-        setIsDragging(true);
-        setDragStart({ x: clientX, y: clientY });
-        setInitialPos({ x: widget.style.x, y: widget.style.y });
+        onSelect(); setIsDragging(true); setDragStart({ x: clientX, y: clientY }); setInitialPos({ x: widget.style.x, y: widget.style.y });
     };
 
     const startResize = (e: React.MouseEvent | React.TouchEvent) => {
         e.stopPropagation();
         const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
         const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-        setIsResizing(true);
-        setResizeStart({ x: clientX, y: clientY });
-        setInitialSize({ w: widget.style.width, h: widget.style.height });
+        setIsResizing(true); setResizeStart({ x: clientX, y: clientY }); setInitialSize({ w: widget.style.width, h: widget.style.height });
     };
 
     const handleRotate = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        const newRot = (widget.style.rotation + 45) % 360;
-        onUpdate({ rotation: newRot });
+        e.stopPropagation(); const newRot = (widget.style.rotation + 45) % 360; onUpdate({ rotation: newRot });
     };
 
     return (
-        <div
-            ref={nodeRef}
-            className={`absolute group cursor-move select-none ${isSelected ? 'z-[50]' : 'z-[10]'}`}
-            style={{
-                left: widget.style.x,
-                top: widget.style.y,
-                width: widget.style.width,
-                height: widget.style.height,
-                transform: `rotate(${widget.style.rotation}deg) scaleX(${widget.style.flipX ? -1 : 1})`,
-                zIndex: isSelected ? 999 : widget.style.zIndex,
-                touchAction: 'none'
-            }}
-            onMouseDown={startDrag}
-            onTouchStart={startDrag}
-            onDoubleClick={() => (widget.type === 'bubble' || widget.type === 'text') && setIsEditingText(true)}
-        >
+        <div ref={nodeRef} className={`absolute group cursor-move select-none ${isSelected ? 'z-[50]' : 'z-[10]'}`} style={{ left: widget.style.x, top: widget.style.y, width: widget.style.width, height: widget.style.height, transform: `rotate(${widget.style.rotation}deg) scaleX(${widget.style.flipX ? -1 : 1})`, zIndex: isSelected ? 999 : widget.style.zIndex, touchAction: 'none' }} onMouseDown={startDrag} onTouchStart={startDrag} onDoubleClick={() => (widget.type === 'bubble' || widget.type === 'text') && setIsEditingText(true)}>
             <div className="w-full h-full relative pointer-events-none">
                 {widget.type === 'qrcode' ? (
-                     <div className="w-full h-full bg-white p-2 border-2 border-black relative shadow-lg">
-                         <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(widget.content)}`} alt="QR Code" className="w-full h-full object-contain" draggable={false}/>
-                         <div className="absolute -bottom-6 left-0 right-0 text-center bg-black text-white text-[10px] py-0.5 font-bold uppercase tracking-widest">SCAN ME</div>
-                     </div>
+                     <div className="w-full h-full bg-white p-2 border-2 border-black relative shadow-lg"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(widget.content)}`} alt="QR Code" className="w-full h-full object-contain" draggable={false}/><div className="absolute -bottom-6 left-0 right-0 text-center bg-black text-white text-[10px] py-0.5 font-bold uppercase tracking-widest">SCAN ME</div></div>
                 ) : widget.type === 'bubble' ? (
-                     <div className="w-full h-full relative">
-                         <div className="w-full h-full" dangerouslySetInnerHTML={{__html: widget.content}} />
-                         <div className="absolute inset-0 flex items-center justify-center p-4 text-center pointer-events-auto">
-                             {isEditingText ? (
-                                 <textarea autoFocus className="w-full h-full bg-transparent outline-none resize-none text-center overflow-hidden" style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color }} value={widget.text} onChange={(e) => onUpdate({ text: e.target.value })} onBlur={() => setIsEditingText(false)} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}/>
-                             ) : (
-                                 <span style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color, whiteSpace: 'pre-wrap' }}>{widget.text || "Doppio clic..."}</span>
-                             )}
-                         </div>
-                     </div>
+                     <div className="w-full h-full relative"><div className="w-full h-full" dangerouslySetInnerHTML={{__html: widget.content}} /><div className="absolute inset-0 flex items-center justify-center p-4 text-center pointer-events-auto">{isEditingText ? (<textarea autoFocus className="w-full h-full bg-transparent outline-none resize-none text-center overflow-hidden" style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color }} value={widget.text} onChange={(e) => onUpdate({ text: e.target.value })} onBlur={() => setIsEditingText(false)} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}/>) : (<span style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color, whiteSpace: 'pre-wrap' }}>{widget.text || "Doppio clic..."}</span>)}</div></div>
                 ) : widget.type === 'text' ? (
-                    <div className="w-full h-full flex items-center justify-center pointer-events-auto">
-                        {isEditingText ? (
-                             <input autoFocus className="w-full bg-transparent outline-none text-center border-2 border-blue-300 border-dashed" style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color, fontWeight: 'bold' }} value={widget.text} onChange={(e) => onUpdate({ text: e.target.value })} onBlur={() => setIsEditingText(false)} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}/>
-                        ) : (
-                             <span className="font-bold drop-shadow-md" style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color }}>{widget.text || "Testo"}</span>
-                        )}
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center pointer-events-auto">{isEditingText ? (<input autoFocus className="w-full bg-transparent outline-none text-center border-2 border-blue-300 border-dashed" style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color, fontWeight: 'bold' }} value={widget.text} onChange={(e) => onUpdate({ text: e.target.value })} onBlur={() => setIsEditingText(false)} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}/>) : (<span className="font-bold drop-shadow-md" style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color }}>{widget.text || "Testo"}</span>)}</div>
                 ) : (
                     (widget.content.startsWith('<svg') || widget.content.startsWith('data:image/svg')) ? <div dangerouslySetInnerHTML={{__html: widget.content}} className="w-full h-full drop-shadow-xl"/> : (widget.content.match(/(\p{Emoji_Presentation}|\p{Extended_Pictographic})/u) ? <div className="w-full h-full flex items-center justify-center" style={{fontSize: `${Math.min(widget.style.width, widget.style.height)}px`}}>{widget.content}</div> : <img src={widget.content} alt="widget" className="w-full h-full object-contain drop-shadow-xl pointer-events-none" draggable={false} />)
                 )}
             </div>
-
             {isSelected && (
                 <div className="absolute -inset-2 border-2 border-blue-500 rounded-lg pointer-events-none">
                     <div className="absolute -bottom-3 -right-3 w-8 h-8 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto flex items-center justify-center shadow-md z-50" onMouseDown={startResize} onTouchStart={startResize}><div className="w-3 h-3 bg-blue-500 rounded-full"/></div>
@@ -408,9 +343,7 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({ widget, isSelected, o
                         <button onClick={(e) => { e.stopPropagation(); onUpdate({ zIndex: widget.style.zIndex + 1 }); }} className="p-2 hover:bg-stone-100 rounded bg-stone-50" title="Porta Su"><Copy size={16}/></button>
                         <div className="w-px bg-stone-300 h-6 my-auto"/>
                         <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="p-2 hover:bg-red-100 text-red-500 rounded bg-red-50" title="Elimina"><Trash2 size={16}/></button>
-                        {(widget.type === 'bubble' || widget.type === 'text') && (
-                            <><div className="w-px bg-stone-300 h-6 my-auto"/><input type="color" value={widget.style.color} onChange={(e) => onUpdate({color: e.target.value})} className="w-8 h-8 p-0 border-0 rounded cursor-pointer"/><button onClick={(e) => { e.stopPropagation(); onUpdate({ fontSize: (widget.style.fontSize || 20) + 2 }); }} className="p-2 font-bold text-xs hover:bg-stone-100 border rounded">A+</button><button onClick={(e) => { e.stopPropagation(); onUpdate({ fontSize: (widget.style.fontSize || 20) - 2 }); }} className="p-2 font-bold text-xs hover:bg-stone-100 border rounded">A-</button></>
-                        )}
+                        {(widget.type === 'bubble' || widget.type === 'text') && (<><div className="w-px bg-stone-300 h-6 my-auto"/><input type="color" value={widget.style.color} onChange={(e) => onUpdate({color: e.target.value})} className="w-8 h-8 p-0 border-0 rounded cursor-pointer"/><button onClick={(e) => { e.stopPropagation(); onUpdate({ fontSize: (widget.style.fontSize || 20) + 2 }); }} className="p-2 font-bold text-xs hover:bg-stone-100 border rounded">A+</button><button onClick={(e) => { e.stopPropagation(); onUpdate({ fontSize: (widget.style.fontSize || 20) - 2 }); }} className="p-2 font-bold text-xs hover:bg-stone-100 border rounded">A-</button></>)}
                     </div>
                 </div>
             )}
@@ -426,15 +359,7 @@ interface WidgetLayerProps {
 }
 
 export const WidgetLayer: React.FC<WidgetLayerProps> = ({ widgets, setWidgets, selectedId, setSelectedId }) => {
-    const handleUpdate = (id: string, changes: Partial<WidgetData['style']> & { text?: string }) => {
-        setWidgets(prev => prev.map(w => { if (w.id !== id) return w; const { text, ...styleChanges } = changes; return { ...w, text: text !== undefined ? text : w.text, style: { ...w.style, ...styleChanges } }; }));
-    };
+    const handleUpdate = (id: string, changes: Partial<WidgetData['style']> & { text?: string }) => { setWidgets(prev => prev.map(w => { if (w.id !== id) return w; const { text, ...styleChanges } = changes; return { ...w, text: text !== undefined ? text : w.text, style: { ...w.style, ...styleChanges } }; })); };
     const handleRemove = (id: string) => { setWidgets(prev => prev.filter(w => w.id !== id)); setSelectedId(null); };
-
-    return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-[50]">
-            <div className="absolute inset-0 pointer-events-auto" onMouseDown={(e) => { if(e.target === e.currentTarget) setSelectedId(null); }} onTouchStart={(e) => { if(e.target === e.currentTarget) setSelectedId(null); }} style={{ display: selectedId ? 'block' : 'none' }}/>
-            {widgets.map(w => ( <div key={w.id} className="pointer-events-auto"><DraggableWidget widget={w} isSelected={selectedId === w.id} onSelect={() => setSelectedId(w.id)} onUpdate={(changes) => handleUpdate(w.id, changes)} onRemove={() => handleRemove(w.id)}/></div> ))}
-        </div>
-    );
+    return (<div className="absolute inset-0 overflow-hidden pointer-events-none z-[50]"><div className="absolute inset-0 pointer-events-auto" onMouseDown={(e) => { if(e.target === e.currentTarget) setSelectedId(null); }} onTouchStart={(e) => { if(e.target === e.currentTarget) setSelectedId(null); }} style={{ display: selectedId ? 'block' : 'none' }}/>{widgets.map(w => ( <div key={w.id} className="pointer-events-auto"><DraggableWidget widget={w} isSelected={selectedId === w.id} onSelect={() => setSelectedId(w.id)} onUpdate={(changes) => handleUpdate(w.id, changes)} onRemove={() => handleRemove(w.id)}/></div> ))}</div>);
 };
