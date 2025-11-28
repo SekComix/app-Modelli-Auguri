@@ -135,23 +135,38 @@ const App: React.FC = () => {
     <div className={`${wrapperClass} ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative ${currentTheme.borderClass} ${!isDigital && !isPoster && !isPreviewMode ? 'border-r' : ''} print:w-full`} style={customPageStyle}>
       {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilter)" /></svg></div>)}
       <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50" title="Limite di stampa sicuro"></div>
+      
       <header className={`${currentTheme.borderClass} border-b-4 pb-4 mb-6 text-center relative z-30`}>
          {isPoster && <div className="text-xs uppercase font-bold mb-2 tracking-widest text-stone-500">Edizione Speciale Poster</div>}
-         {/* FIX TITOLO: Aggiunto whitespace-nowrap e overflow-visible */}
-         <EditableText value={data.publicationName} onChange={(v) => updateMeta('publicationName', v)} className={`${currentTheme.titleFont} ${isPoster ? 'text-8xl lg:text-9xl' : 'text-6xl lg:text-8xl'} leading-tight ${currentTheme.textClass} whitespace-nowrap overflow-visible`} language={currentTheme.language} aiEnabled={!isPreviewMode} aiContext="Nome della testata" mode="headline"/>
+         {/* TITOLO: Rimosso whitespace-nowrap. Ora va a capo. Usa font size per regolare. */}
+         <EditableText value={data.publicationName} onChange={(v) => updateMeta('publicationName', v)} className={`${currentTheme.titleFont} ${isPoster ? 'text-8xl lg:text-9xl' : 'text-6xl lg:text-8xl'} leading-tight ${currentTheme.textClass} overflow-visible`} language={currentTheme.language} aiEnabled={!isPreviewMode} aiContext="Nome della testata" mode="headline"/>
          {!isPoster && (<div className={`flex justify-center gap-8 mt-2 text-xs font-bold uppercase tracking-widest border-t ${currentTheme.borderClass} pt-2 w-full max-w-md mx-auto ${currentTheme.textClass}`}><EditableText value={data.issueNumber} onChange={(v)=>updateMeta('issueNumber',v)} aiEnabled={!isPreviewMode}/><EditableText value={data.date} onChange={(v)=>updateMeta('date',v)} aiEnabled={!isPreviewMode}/><EditableText value={data.price} onChange={(v)=>updateMeta('price',v)} aiEnabled={!isPreviewMode}/></div>)}
       </header>
+      
       <div className={`${isPoster ? 'flex flex-col h-full' : 'grid grid-cols-12 gap-6'} h-full ${currentTheme.textClass} relative z-30`}>
         <div className={`${isPoster ? 'w-full flex-1 flex flex-col' : 'col-span-8'}`}>
-          <article className="mb-6 flex-1 flex flex-col">
+          <article className="mb-6 flex-1 flex flex-col relative">
              <EditableText value={data.articles['lead'].headline} onChange={(v) => updateArticle('lead', 'headline', v)} className={`${currentTheme.headlineFont} ${isPoster ? 'text-6xl lg:text-7xl text-center my-8' : 'text-4xl lg:text-5xl'} leading-tight mb-2 font-bold`} aiEnabled={!isPreviewMode} aiContext="Titolo principale" mode="headline"/>
              {!isPoster && (<EditableText value={data.articles['lead'].subheadline || ''} onChange={(v) => updateArticle('lead', 'subheadline', v)} className={`${currentTheme.bodyFont} text-xl italic opacity-80 mb-4`} aiEnabled={!isPreviewMode} aiContext="Sottotitolo" mode="headline"/>)}
              <ImageSpot src={data.articles['lead'].imageUrl} onChange={(v) => updateArticle('lead', 'imageUrl', v)} className={`w-full mb-4 ${currentTheme.borderClass} border shadow-sm ${isPoster ? 'flex-1 object-cover min-h-[500px]' : ''}`} context={data.articles['lead'].headline} autoHeight={!isPoster} filters={currentTheme.imageFilter} enableResizing={!isPreviewMode} customHeight={data.articles['lead'].customHeight} onHeightChange={(h) => updateArticle('lead', 'customHeight', h)}/>
              {!isPoster && (<div className={`columns-2 gap-6 [column-rule:1px_solid_${isDigital?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.1)'}] ${currentTheme.bodyFont} text-sm text-justify leading-relaxed`}><EditableText value={data.articles['lead'].content} onChange={(v) => updateArticle('lead', 'content', v)} multiline={true} aiEnabled={!isPreviewMode} aiContext="Articolo principale" mode="body"/></div>)}
+             
+             {/* TOOLBAR ADESIVA SEZIONE CENTRALE */}
+             <AddBlockControls onAdd={(t:BlockType)=>addBlock('front',t)} themeId={data.themeId} isPreview={isPreviewMode}/>
           </article>
-          {!isPoster && (<div className={`${currentTheme.borderClass} border-t-2 pt-4 mt-2`}><RenderBlocks blocks={data.frontPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('front',id,v,h)} onRemove={(id:string)=>removeBlock('front',id)} theme={currentTheme} isPreview={isPreviewMode}/><AddBlockControls onAdd={(t:BlockType)=>addBlock('front',t)} themeId={data.themeId} isPreview={isPreviewMode}/></div>)}
         </div>
-        {!isPoster && (<div className={`col-span-4 ${currentTheme.borderClass} border-l pl-4 flex flex-col gap-6`}><div className={`${currentTheme.borderClass} border-2 p-3 bg-stone-200/50 text-stone-800`}><h3 className="font-sans font-bold uppercase text-sm border-b mb-2">In Questo Numero</h3><EditableText value={data.indexContent} onChange={(v)=>updateMeta('indexContent',v)} multiline={true} className="text-sm font-serif" aiEnabled={!isPreviewMode} aiContext="Indice" mode="summary"/></div><article><EditableText value={data.articles['sidebar'].headline} onChange={(v)=>updateArticle('sidebar','headline',v)} className={`${currentTheme.headlineFont} text-2xl font-bold mb-2`} aiEnabled={!isPreviewMode} aiContext="Titolo spalla" mode="headline"/><EditableText value={data.articles['sidebar'].content} onChange={(v)=>updateArticle('sidebar','content',v)} multiline={true} className="text-xs text-justify" aiEnabled={!isPreviewMode} aiContext="Articolo spalla" mode="body"/></article><div className="mt-4 border-t pt-4"><RenderBlocks blocks={data.sidebarBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('sidebar',id,v,h)} onRemove={(id:string)=>removeBlock('sidebar',id)} theme={currentTheme} isSidebar={true} isPreview={isPreviewMode}/><AddBlockControls onAdd={(t:BlockType)=>addBlock('sidebar',t)} isSidebar={true} themeId={data.themeId} isPreview={isPreviewMode}/></div></div>)}
+        
+        {!isPoster && (
+            <div className={`col-span-4 ${currentTheme.borderClass} border-l pl-4 flex flex-col gap-6 relative`}>
+                <div className={`${currentTheme.borderClass} border-2 p-3 bg-stone-200/50 text-stone-800`}><h3 className="font-sans font-bold uppercase text-sm border-b mb-2">In Questo Numero</h3><EditableText value={data.indexContent} onChange={(v)=>updateMeta('indexContent',v)} multiline={true} className="text-sm font-serif" aiEnabled={!isPreviewMode} aiContext="Indice" mode="summary"/></div>
+                <article><EditableText value={data.articles['sidebar'].headline} onChange={(v)=>updateArticle('sidebar','headline',v)} className={`${currentTheme.headlineFont} text-2xl font-bold mb-2`} aiEnabled={!isPreviewMode} aiContext="Titolo spalla" mode="headline"/><EditableText value={data.articles['sidebar'].content} onChange={(v)=>updateArticle('sidebar','content',v)} multiline={true} className="text-xs text-justify" aiEnabled={!isPreviewMode} aiContext="Articolo spalla" mode="body"/></article>
+                <div className="mt-4 border-t pt-4">
+                    <RenderBlocks blocks={data.sidebarBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('sidebar',id,v,h)} onRemove={(id:string)=>removeBlock('sidebar',id)} theme={currentTheme} isSidebar={true} isPreview={isPreviewMode}/>
+                    {/* TOOLBAR ADESIVA SIDEBAR */}
+                    <AddBlockControls onAdd={(t:BlockType)=>addBlock('sidebar',t)} isSidebar={true} themeId={data.themeId} isPreview={isPreviewMode}/>
+                </div>
+            </div>
+        )}
       </div>
     </div>
   );
@@ -160,7 +175,10 @@ const App: React.FC = () => {
     <div className={`w-full ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative print:w-full shadow-xl print:shadow-none print:break-after-page group/page ${currentTheme.textClass} flex flex-col`} style={customPageStyle}>
        <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50"></div>
        {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilterInternal"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilterInternal)" /></svg></div>)}
-       <div className="flex-1 overflow-hidden flex flex-col relative z-30"><RenderBlocks blocks={blocks} onUpdate={(id:string,v:string,h?:number)=>updateBlockInSpread(sid,side,id,v,h)} onRemove={(id:string)=>removeBlockInSpread(sid,side,id)} theme={currentTheme} isPreview={isPreviewMode}/><div className="mt-auto"><AddBlockControls onAdd={(t:BlockType)=>addBlockToSpread(sid,side,t)} themeId={data.themeId} isPreview={isPreviewMode}/></div></div>
+       <div className="flex-1 overflow-hidden flex flex-col relative z-30">
+           <RenderBlocks blocks={blocks} onUpdate={(id:string,v:string,h?:number)=>updateBlockInSpread(sid,side,id,v,h)} onRemove={(id:string)=>removeBlockInSpread(sid,side,id)} theme={currentTheme} isPreview={isPreviewMode}/>
+           <AddBlockControls onAdd={(t:BlockType)=>addBlockToSpread(sid,side,t)} themeId={data.themeId} isPreview={isPreviewMode}/>
+       </div>
        <div className="mt-4 text-center text-xs font-bold flex-shrink-0 relative z-30">Pagina {pn}</div>
     </div>
   );
@@ -177,19 +195,10 @@ const App: React.FC = () => {
         </article>
         <div className="grid grid-cols-2 gap-8 mt-auto relative z-30">
             <div className={`border ${currentTheme.borderClass} p-4`}><h3 className="uppercase font-bold text-sm mb-2">Meteo</h3><EditableText value={data.articles['weather'].content} onChange={(v)=>updateArticle('weather','content',v)} multiline={true} className="font-serif text-sm" aiEnabled={!isPreviewMode} mode="body"/></div>
-            
-            {/* FIX VIGNETTA: Multiline attivo per permettere a capo */}
             <div className={`border ${currentTheme.borderClass} p-4 text-center`}>
                 <h3 className="uppercase font-bold text-sm mb-2">Vignetta / Dedica</h3>
                 <ImageSpot src={data.articles['comic'].imageUrl} onChange={(v)=>updateArticle('comic','imageUrl',v)} className="w-full" autoHeight={true} filters={currentTheme.imageFilter} context={data.articles['comic'].content}/>
-                <EditableText 
-                    value={data.articles['comic'].content} 
-                    onChange={(v)=>updateArticle('comic','content',v)} 
-                    className="text-xs italic mt-2 text-center w-full" 
-                    aiEnabled={!isPreviewMode} 
-                    mode="body" 
-                    multiline={true}
-                />
+                <EditableText value={data.articles['comic'].content} onChange={(v)=>updateArticle('comic','content',v)} className="text-xs italic mt-2 text-center w-full" aiEnabled={!isPreviewMode} mode="body" multiline={true}/>
             </div>
         </div>
      </div>
