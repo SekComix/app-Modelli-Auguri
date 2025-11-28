@@ -23,18 +23,41 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
   const [loadingStep, setLoadingStep] = useState<string>('');
   const [useOriginalColor, setUseOriginalColor] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  
   const [isResizing, setIsResizing] = useState(false);
+  // NUOVO STATO PER LE DIMENSIONI
+  const [dimensions, setDimensions] = useState({ w: 0, h: 0 });
+  
   const containerRef = useRef<HTMLDivElement>(null);
+
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [promptMode, setPromptMode] = useState<'image' | 'video'>('image');
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isVideo = src?.startsWith('data:video') || src?.startsWith('blob:') || src?.endsWith('.mp4') || src?.endsWith('.webm');
 
   const heightValue = customHeight ? `${customHeight}px` : '300px';
+
+  // MONITORAGGIO DIMENSIONI REALI
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setDimensions({
+          w: Math.round(entry.contentRect.width),
+          h: Math.round(entry.contentRect.height)
+        });
+      }
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -44,9 +67,7 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
       const newHeight = e.clientY - rect.top;
       if (newHeight > 50 && newHeight < 1500) onHeightChange(newHeight);
     };
-    const handleMouseUp = () => {
-      setIsResizing(false); document.body.style.cursor = 'default'; document.body.style.userSelect = '';
-    };
+    const handleMouseUp = () => { setIsResizing(false); document.body.style.cursor = 'default'; document.body.style.userSelect = ''; };
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove); document.addEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = 'row-resize'; document.body.style.userSelect = 'none';
@@ -68,11 +89,15 @@ export const ImageSpot: React.FC<ImageSpotProps> = ({
   const activeFilters = filters || "grayscale contrast-125 sepia-[.15] brightness-90";
   const imageFilterClass = useOriginalColor ? "" : activeFilters;
   
-  // MODIFICA QUI: bg-transparent invece di bg-stone-200
-  // Così se la foto non riempie, si vede lo sfondo del giornale.
   return (
     <>
       <div ref={containerRef} className={`relative group bg-transparent overflow-hidden w-full ${className}`} style={{ height: heightValue, minHeight: '100px' }}>
+        
+        {/* ETICHETTA DIMENSIONI (Visibile solo a schermo, nascosta in stampa) */}
+        <div className="absolute top-2 left-2 z-40 bg-black/60 text-white text-[9px] font-mono px-2 py-1 rounded pointer-events-none print:hidden">
+            W: {dimensions.w}px | H: {dimensions.h}px
+        </div>
+
         {src ? ( 
             isVideo ? (
                 <video ref={videoRef} src={src} autoPlay loop muted={isMuted} playsInline className={`absolute inset-0 w-full h-full object-contain ${imageFilterClass}`} />
