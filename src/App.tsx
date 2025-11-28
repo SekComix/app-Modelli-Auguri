@@ -57,19 +57,39 @@ const App: React.FC = () => {
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD;
 
+  // --- LOGICA SALVATAGGIO CORRETTA ---
   const saveProjectToLibrary = () => {
-      const name = prompt("Che nome vuoi dare a questo progetto?", data.publicationName || "Nuovo Progetto");
+      // Default value: usa il nome progetto esistente, o il nome pubblicazione, o "Nuovo Progetto"
+      const defaultName = data.projectLabel || data.publicationName || "Nuovo Progetto";
+      const name = prompt("Che nome vuoi dare a questo progetto?", defaultName);
+      
       if (!name) return;
+
       try {
           const library = JSON.parse(localStorage.getItem('sek_projects_library') || '[]');
-          const projectToSave = { ...data, publicationName: name, date: new Date().toLocaleDateString() };
+          
+          // AGGIORNA SOLO IL PROJECTLABEL, NON LA PUBLICATION NAME
+          const projectToSave = { 
+              ...data, 
+              projectLabel: name, // Questo è il nome del file
+              date: new Date().toLocaleDateString() 
+          };
+          
           setData(projectToSave);
-          const existingIdx = library.findIndex((p: NewspaperData) => p.publicationName === name);
+
+          // Cerca per projectLabel (Nome File) invece che publicationName
+          const existingIdx = library.findIndex((p: NewspaperData) => p.projectLabel === name);
+          
           if (existingIdx >= 0) {
-              if (confirm("Esiste già un progetto con questo nome. Sovrascrivere?")) { library[existingIdx] = projectToSave; } else { return; }
-          } else { library.push(projectToSave); }
+              if (confirm(`Esiste già un progetto salvato come "${name}". Sovrascrivere?`)) {
+                  library[existingIdx] = projectToSave;
+              } else { return; }
+          } else {
+              library.push(projectToSave);
+          }
+          
           localStorage.setItem('sek_projects_library', JSON.stringify(library));
-          alert("Progetto salvato!");
+          alert("Progetto salvato correttamente!");
       } catch (e) { alert("Memoria piena. Usa 'Scarica Backup'."); }
   };
 
@@ -178,7 +198,15 @@ const App: React.FC = () => {
             <EditableText value={data.articles['backMain'].headline} onChange={(v)=>updateArticle('backMain','headline',v)} className={`${currentTheme.headlineFont} text-5xl font-black italic uppercase leading-none mb-3`} aiEnabled={!isPreviewMode} mode="headline"/>
             <EditableText value={data.articles['backMain'].content} onChange={(v)=>updateArticle('backMain','content',v)} multiline={true} className={`columns-2 gap-6 [column-rule:1px_solid_${isDigital?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.1)'}] text-sm text-justify`} aiEnabled={!isPreviewMode} mode="body"/>
         </article>
-        <div className="grid grid-cols-2 gap-8 mt-auto relative z-30"><div className={`border ${currentTheme.borderClass} p-4`}><h3 className="uppercase font-bold text-sm mb-2">Meteo</h3><EditableText value={data.articles['weather'].content} onChange={(v)=>updateArticle('weather','content',v)} multiline={true} className="font-serif text-sm" aiEnabled={!isPreviewMode} mode="body"/></div><div className={`border ${currentTheme.borderClass} p-4 text-center`}><h3 className="uppercase font-bold text-sm mb-2">Vignetta / Dedica</h3><ImageSpot src={data.articles['comic'].imageUrl} onChange={(v)=>updateArticle('comic','imageUrl',v)} className="w-full" autoHeight={true} filters={currentTheme.imageFilter} context={data.articles['comic'].content}/><EditableText value={data.articles['comic'].content} onChange={(v)=>updateArticle('comic','content',v)} className="text-xs italic mt-2" aiEnabled={!isPreviewMode} mode="headline"/></div></div>
+        <div className="grid grid-cols-2 gap-8 mt-auto relative z-30">
+            <div className={`border ${currentTheme.borderClass} p-4`}><h3 className="uppercase font-bold text-sm mb-2">Meteo</h3><EditableText value={data.articles['weather'].content} onChange={(v)=>updateArticle('weather','content',v)} multiline={true} className="font-serif text-sm" aiEnabled={!isPreviewMode} mode="body"/></div>
+            <div className={`border ${currentTheme.borderClass} p-4 text-center`}><h3 className="uppercase font-bold text-sm mb-2">Vignetta / Dedica</h3><ImageSpot src={data.articles['comic'].imageUrl} onChange={(v)=>updateArticle('comic','imageUrl',v)} className="w-full" autoHeight={true} filters={currentTheme.imageFilter} context={data.articles['comic'].content}/><EditableText value={data.articles['comic'].content} onChange={(v)=>updateArticle('comic','content',v)} className="text-xs italic mt-2" aiEnabled={!isPreviewMode} mode="headline"/></div>
+        </div>
+        {/* TOOLBAR ANCHE QUI (CORRETTO) */}
+        <div className="mt-4">
+             <RenderBlocks blocks={data.backPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('back',id,v,h)} onRemove={(id:string)=>removeBlock('back',id)} theme={currentTheme} isPreview={isPreviewMode}/>
+             <AddBlockControls onAdd={(t:BlockType)=>addBlock('back',t)} themeId={data.themeId} isPreview={isPreviewMode}/>
+        </div>
      </div>
   );
 
