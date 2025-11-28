@@ -260,4 +260,46 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
                                 <h4 className="font-bold text-blue-800 flex items-center gap-2 mb-1 text-sm"><Scissors size={16}/> Rimuovi Sfondo</h4>
                                 <p className="text-[10px] text-stone-600 mb-2">Ritaglia persone e oggetti per mascotte.</p>
-                                <a href="https://www.remove.bg/it/upload" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Remo
+                                <a href="https://www.remove.bg/it/upload" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Remove.bg <ExternalLink size={10}/></a>
+                            </div>
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                                <h4 className="font-bold text-green-800 flex items-center gap-2 mb-1 text-sm"><Eraser size={16}/> Pulisci Foto</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Cancella oggetti indesiderati.</p>
+                                <a href="https://cleanup.pictures/" target="_blank" rel="noreferrer" className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Cleanup.pictures <ExternalLink size={10}/></a>
+                            </div>
+                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+                                <h4 className="font-bold text-indigo-800 flex items-center gap-2 mb-1 text-sm"><Minimize size={16}/> Ridimensiona Foto</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Rimpicciolisci o ingrandisci in pixel/percentuale.</p>
+                                <a href="https://www.iloveimg.com/it/ridimensionare-immagine" target="_blank" rel="noreferrer" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">I Love IMG <ExternalLink size={10}/></a>
+                            </div>
+                            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
+                                <h4 className="font-bold text-purple-800 flex items-center gap-2 mb-1 text-sm"><Maximize size={16}/> Migliora Foto (HD)</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Rendi nitide le foto sgranate.</p>
+                                <a href="https://www.upscale.media/it" target="_blank" rel="noreferrer" className="w-full bg-purple-600 hover:bg-purple-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Upscale.media <ExternalLink size={10}/></a>
+                            </div>
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                                <h4 className="font-bold text-gray-800 flex items-center gap-2 mb-1 text-sm"><Palette size={16}/> Colora Foto B/N</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Trasforma vecchie foto in bianco e nero.</p>
+                                <a href="https://palette.fm/" target="_blank" rel="noreferrer" className="w-full bg-gray-600 hover:bg-gray-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Palette.fm <ExternalLink size={10}/></a>
+                            </div>
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                                <h4 className="font-bold text-red-800 flex items-center gap-2 mb-1 text-sm"><FileText size={16}/> Gestione PDF</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Unisci Fronte e Retro in un unico file.</p>
+                                <a href="https://www.ilovepdf.com/it" target="_blank" rel="noreferrer" className="w-full bg-red-600 hover:bg-red-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">I Love PDF <ExternalLink size={10}/></a>
+                            </div>
+                            <div className="bg-teal-50 border border-teal-200 rounded-xl p-3">
+                                <h4 className="font-bold text-teal-800 flex items-center gap-2 mb-1 text-sm"><ImageIcon size={16}/> Archivio Vintage</h4>
+                                <p className="text-[10px] text-stone-600 mb-2">Foto d'epoca gratuite per riempire.</p>
+                                <a href="https://www.pexels.com/it-it/search/vintage/" target="_blank" rel="noreferrer" className="w-full bg-teal-600 hover:bg-teal-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Pexels Vintage <ExternalLink size={10}/></a>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
+
+// ... (Le altre parti DraggableWidget e WidgetLayer rimangono uguali, non serve reincollarla se non hai toccato nulla lì sotto)
+// Se vuoi essere sicuro, copia pure il codice del messaggio precedente dalla riga // --- DRAGGABLE ITEM in poi
