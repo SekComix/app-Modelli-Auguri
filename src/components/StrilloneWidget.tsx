@@ -2,51 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, RotateCw, Copy, QrCode, Mic, Link as LinkIcon, ExternalLink, Heart, History, Star, Tag, Scissors, Eraser, Wrench, Maximize, Palette, FileText, Image as ImageIcon, Minimize } from 'lucide-react';
 import { WidgetData, WidgetType } from '../types';
-
-// --- ASSET PREIMPOSTATI ---
-const DEFAULT_ASSETS = {
-    mascots: [
-        { id: 'strillone', label: 'Strillone', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995655.png' },
-        { id: 'gentleman', label: 'Gentleman', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995515.png' },
-        { id: 'santa', label: 'Babbo Natale', src: 'https://cdn-icons-png.flaticon.com/512/744/744546.png' },
-        { id: 'befana', label: 'Befana', src: 'https://cdn-icons-png.flaticon.com/512/2316/2316794.png' },
-        { id: 'graduate', label: 'Laureato', src: 'https://cdn-icons-png.flaticon.com/512/3135/3135810.png' },
-        { id: 'bride', label: 'Sposa', src: 'https://cdn-icons-png.flaticon.com/512/2405/2405546.png' },
-        { id: 'groom', label: 'Sposo', src: 'https://cdn-icons-png.flaticon.com/512/2405/2405451.png' }
-    ],
-    stickers: [
-        { id: 'cake', label: 'Torta', content: '🎂' },
-        { id: 'champagne', label: 'Spumante', content: '🍾' },
-        { id: 'wreath', label: 'Alloro', content: '🌿' },
-        { id: 'rose', label: 'Rosa', content: '🌹' },
-        { id: 'party', label: 'Festa', content: '🎉' },
-        { id: 'ring', label: 'Anello', content: '💍' },
-        { id: 'topsecret', label: 'Top Secret', src: 'https://cdn-icons-png.flaticon.com/512/9373/9373844.png' },
-        { id: 'approved', label: 'Approvato', src: 'https://cdn-icons-png.flaticon.com/512/5229/5229357.png' }
-    ],
-    emotions: [
-        { id: 'grad_cap', label: 'Tocco', content: '🎓' },
-        { id: 'rings', label: 'Fedi', content: '💍' },
-        { id: 'dove', label: 'Colomba', content: '🕊️' },
-        { id: 'xmas_tree', label: 'Albero', content: '🎄' },
-        { id: 'pumpkin', label: 'Zucca', content: '🎃' },
-        { id: 'baby', label: 'Ciuccio', content: '👶' },
-        { id: 'love', label: 'Amore', content: '🥰' },
-        { id: 'laugh', label: 'Risata', content: '😂' },
-        { id: 'cry_joy', label: 'Gioia', content: '🥹' },
-        { id: 'cool', label: 'Cool', content: '😎' },
-        { id: 'party_face', label: 'Party', content: '🥳' },
-        { id: 'heart', label: 'Cuore', content: '❤️' },
-        { id: 'pray', label: 'Preghiera', content: '🙏' },
-        { id: 'star', label: 'Stella', content: '⭐' }
-    ],
-    bubbles: [
-        { id: 'speech1', label: 'Classico', svg: `<svg viewBox="0 0 200 150"><path d="M10,75 Q10,10 100,10 T190,75 Q190,140 100,140 L60,140 L30,150 L40,130 Q10,130 10,75" fill="white" stroke="black" stroke-width="3"/></svg>` },
-        { id: 'thought', label: 'Pensiero', svg: `<svg viewBox="0 0 200 150"><path d="M20,75 Q20,10 100,10 T180,75 Q180,130 100,130 L60,130 L40,150 L50,120 Q20,120 20,75" fill="white" stroke="black" stroke-width="3" stroke-dasharray="5,5"/></svg>` },
-        { id: 'shout', label: 'Urlo', svg: `<svg viewBox="0 0 200 150"><path d="M10,75 L30,40 L10,10 L60,30 L100,5 L140,30 L190,10 L170,40 L190,75 L170,110 L190,140 L140,120 L100,145 L60,120 L10,140 L30,110 Z" fill="white" stroke="black" stroke-width="3"/></svg>` },
-        { id: 'box', label: 'Didascalia', svg: `<svg viewBox="0 0 200 100"><rect x="2" y="2" width="196" height="96" fill="#fffbe6" stroke="black" stroke-width="2"/></svg>` }
-    ]
-};
+// IMPORTIAMO IL NUOVO MAGAZZINO ASSET
+import { DEFAULT_ASSETS } from '../assetsData';
 
 // --- FUNZIONE DI COMPRESSIONE IMMAGINI ---
 const compressImage = (file: File): Promise<string> => {
@@ -232,7 +189,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         </div>
                     )}
 
-                    {/* SEZIONE UTILI (AGGIORNATA CON I LOVE IMG) */}
+                    {/* SEZIONE UTILI (AGGIORNATA) */}
                     {activeTab === 'tools' && (
                         <div className="space-y-3">
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
@@ -282,6 +239,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
     );
 };
 
+// --- DRAGGABLE ITEM (Invariato) ---
 interface DraggableWidgetProps {
     widget: WidgetData;
     isSelected: boolean;
