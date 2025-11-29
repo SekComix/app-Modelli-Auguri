@@ -1,15 +1,15 @@
-/* --- EFFETTI VISIVI WOW (CORRETTO) --- */
+/* --- EFFETTI VISIVI WOW (Con z-index altissimo) --- */
 
 /* NEVE */
 .snowflake {
   position: fixed;
-  top: -10px;
-  color: #a5d8ff; /* Azzurro ghiaccio per vedersi sul bianco */
-  text-shadow: 0 0 2px #000; /* Ombra scura per contrasto */
+  top: -20px;
+  color: #a5d8ff; /* Azzurro ghiaccio */
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Ombra */
   font-size: 1em;
   font-family: Arial;
   user-select: none;
-  z-index: 99999 !important; /* Altissimo per stare sopra le foto */
+  z-index: 999999 !important; /* Sopra a tutto */
   pointer-events: none;
   animation-name: snowflakes-fall, snowflakes-shake;
   animation-duration: 10s, 3s;
@@ -19,7 +19,7 @@
 
 @keyframes snowflakes-fall {
   0% { top: -10%; }
-  100% { top: 100%; }
+  100% { top: 110%; }
 }
 @keyframes snowflakes-shake {
   0% { transform: translateX(0px); }
@@ -30,14 +30,14 @@
 /* CORIANDOLI */
 .confetti {
   position: fixed;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   background-color: #f00;
-  animation: confetti-fall 5s linear infinite;
-  z-index: 99999 !important; /* Altissimo */
+  animation: confetti-fall 4s linear infinite;
+  z-index: 999999 !important; /* Sopra a tutto */
   pointer-events: none;
-  border-radius: 50%; /* Rotondi */
-  box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  border-radius: 50%;
+  box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
 }
 
 @keyframes confetti-fall {
