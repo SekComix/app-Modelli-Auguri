@@ -6,7 +6,7 @@ import { WidgetLibrary, WidgetLayer } from './components/StrilloneWidget';
 import { CrosswordGrid, AddBlockControls, RenderBlocks } from './components/EditorShared';
 import { Dashboard } from './components/Dashboard';
 import { VisualEffects } from './components/VisualEffects';
-import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Home, Download } from 'lucide-react';
+import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Home, Download, LayoutTemplate, CalendarHeart } from 'lucide-react';
 import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { THEMES, INITIAL_ARTICLES, INITIAL_DATA } from './data';
@@ -55,9 +55,41 @@ const App: React.FC = () => {
 
   const currentTheme = THEMES[data.themeId];
   const isDigital = data.themeId === 'digital';
+  
+  // Variabili di stato per i formati
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD_FOLDABLE;
 
+  // --- LOGICA CAMBIO EVENTO (Uniscono Grafica + Testi) ---
+  const handleEventChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const selectedEvent = e.target.value as EventType;
+      let associatedTheme: ThemeId = 'classic';
+
+      // Associa automaticamente il tema grafico all'evento
+      switch(selectedEvent) {
+          case EventType.CHRISTMAS: associatedTheme = 'christmas'; break;
+          case EventType.EASTER: associatedTheme = 'easter'; break;
+          case EventType.HALLOWEEN: associatedTheme = 'halloween'; break;
+          case EventType.BIRTHDAY: associatedTheme = 'birthday'; break;
+          case EventType.EIGHTEEN: associatedTheme = 'birthday'; break; // Usa stile compleanno
+          case EventType.WEDDING: associatedTheme = 'wedding'; break;
+          case EventType.GRADUATION: associatedTheme = 'graduation'; break;
+          case EventType.BAPTISM: associatedTheme = 'baptism'; break;
+          case EventType.COMMUNION: associatedTheme = 'communion'; break;
+          case EventType.CRESIMA: associatedTheme = 'communion'; break; // Usa stile simile
+          default: associatedTheme = 'classic'; // Generico
+      }
+
+      // Aggiorna tutto insieme
+      setData(prev => ({ ...prev, eventType: selectedEvent, themeId: associatedTheme }));
+      setShowConfigPanel(true); // Apri config per i nomi
+  };
+
+  const handleFormatChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setData(prev => ({ ...prev, formatType: e.target.value as FormatType }));
+  };
+
+  // --- SALVATAGGIO E GESTIONE FILE ---
   const saveProjectToLibrary = () => {
       const defaultName = data.projectLabel || data.publicationName || "Nuovo Progetto";
       const name = prompt("Che nome vuoi dare a questo progetto?", defaultName);
@@ -83,18 +115,25 @@ const App: React.FC = () => {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); reader.readAsDataURL(file); } };
   const openSaveDialog = () => { setBackupFilename(`giornale-${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`); setShowSaveDialog(true); }
 
-  const updateTheme = (themeId: ThemeId) => { let newEventType = data.eventType; if (themeId === 'birthday') newEventType = EventType.BIRTHDAY; if (themeId === 'christmas') newEventType = EventType.CHRISTMAS; if (themeId === 'easter') newEventType = EventType.EASTER; const newData = { ...data, themeId, eventType: newEventType }; setData(newData); };
-  const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const newType = e.target.value as EventType; let newTheme = data.themeId; if (newType === EventType.CHRISTMAS) newTheme = 'christmas'; if (newType === EventType.EASTER) newTheme = 'easter'; if (newType === EventType.BIRTHDAY) newTheme = 'birthday'; if (newType === EventType.HALLOWEEN) newTheme = 'halloween'; if (newType === EventType.WEDDING) newTheme = 'wedding'; if (newType === EventType.GRADUATION) newTheme = 'graduation'; if (newType === EventType.BAPTISM) newTheme = 'baptism'; if (newType === EventType.COMMUNION) newTheme = 'communion'; setShowConfigPanel(true); setData(prev => ({ ...prev, eventType: newType, themeId: newTheme })); };
-  
   const updateArticle = (id: string, field: string, value: any) => setData(prev => ({ ...prev, articles: { ...prev.articles, [id]: { ...prev.articles[id], [field]: value } } }));
   const updateMeta = (field: keyof NewspaperData, value: string | number) => setData(prev => ({ ...prev, [field]: value }));
   const updateEventConfig = (field: keyof NewspaperData['eventConfig'], value: any) => setData(prev => ({ ...prev, eventConfig: { ...prev.eventConfig, [field]: value } }));
 
   const generateContentForEvent = (type: EventType, config: any): { pubName: string, articles: Record<string, ArticleData>, index: string, extraPages: ExtraSpread[] } => {
     let pubName = "La Cronaca Quotidiana"; let articles = JSON.parse(JSON.stringify(INITIAL_ARTICLES)); let index = "- Esteri .......... Pag. 2\n- Economia ........ Pag. 4\n- Cruciverba ...... Pag. 11"; let extraPages: ExtraSpread[] = []; const name = config.heroName1 || "Protagonista"; const genderSuffix = config.gender === 'F' ? 'a' : 'o'; let age = 0; if (config.date) { const birthYear = new Date(config.date).getFullYear(); const currentYear = new Date().getFullYear(); age = currentYear - birthYear; }
+    
+    // LOGICA TESTI AUTOMATICI
     switch (type) {
-        case EventType.BIRTHDAY: pubName = `Il Corriere di ${name}`; articles['lead'].headline = `BUON COMPLEANNO ${name.toUpperCase()}!`; articles['lead'].subheadline = `Grande festa per i suoi splendidi ${age > 0 ? age : 'X'} anni`; articles['lead'].content = `Oggi è un giorno speciale! ${name} festeggia un traguardo importante...`; break;
+        case EventType.BIRTHDAY:
+            pubName = `Il Corriere di ${name}`;
+            articles['lead'].headline = `BUON COMPLEANNO ${name.toUpperCase()}!`;
+            articles['lead'].subheadline = `Grande festa per i suoi splendidi ${age > 0 ? age : 'X'} anni`;
+            articles['lead'].content = `Oggi è un giorno speciale! ${name} festeggia un traguardo importante...`;
+            break;
         case EventType.WEDDING: pubName = `L'Eco degli Sposi`; articles['lead'].headline = `OGGI SPOSI!`; break;
+        case EventType.GRADUATION: pubName = `La Voce del Dottore`; articles['lead'].headline = `CONGRATULAZIONI!`; break;
+        case EventType.CHRISTMAS: pubName = `Corriere di Natale`; articles['lead'].headline = `BUON NATALE A TUTTI`; break;
+        case EventType.HALLOWEEN: pubName = `La Gazzetta Spettrale`; articles['lead'].headline = `DOLCETTO O SCHERZETTO?`; break;
     }
     return { pubName, articles, index, extraPages };
   };
@@ -201,9 +240,21 @@ const App: React.FC = () => {
                     <button onClick={() => saveProjectToLibrary()} className="p-1 hover:bg-white rounded text-stone-600 hover:text-green-600 transition-colors" title="Salva in Dashboard"><Save size={18}/></button>
                     <button onClick={openSaveDialog} className="p-1 hover:bg-white rounded text-stone-600 hover:text-orange-600 transition-colors" title="Scarica Backup"><Download size={18}/></button>
                 </div>
+                
+                {/* MENU RIORGANIZZATI: FORMATO E EVENTO */}
                 <div className="flex items-center gap-2 p-2 pt-3 rounded-lg bg-stone-100 border border-stone-200 relative shrink-0 h-10 items-center">
-                    <div className="absolute -top-2 left-2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">OCCASIONE</div>
-                    <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.eventType} onChange={handleEventTypeChange}>
+                    <div className="absolute -top-2 left-2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">FORMATO</div>
+                    <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.formatType} onChange={handleFormatChange}>
+                        <option value={FormatType.NEWSPAPER}>Giornale</option>
+                        <option value={FormatType.POSTER}>Poster/Locandina</option>
+                        <option value={FormatType.CARD_FOLDABLE}>Biglietto Auguri</option>
+                        <option value={FormatType.BUSINESS_CARD}>Biglietti Visita</option>
+                    </select>
+                    
+                    <div className="w-px h-4 bg-stone-300"></div>
+                    
+                    <div className="absolute -top-2 right-2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">EVENTO</div>
+                    <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.eventType} onChange={handleEventChange}>
                         <option value={EventType.GENERIC}>Generico</option>
                         <option value={EventType.BIRTHDAY}>Compleanno</option>
                         <option value={EventType.EIGHTEEN}>18 Anni</option>
@@ -216,11 +267,10 @@ const App: React.FC = () => {
                         <option value={EventType.BAPTISM}>Battesimo</option>
                         <option value={EventType.COMMUNION}>Comunione</option>
                     </select>
-                    <div className="w-px h-4 bg-stone-300"></div>
-                    <div className="absolute -top-2 right-2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">GRAFICA</div>
-                    <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.themeId} onChange={(e) => updateTheme(e.target.value as ThemeId)}>{Object.values(THEMES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
+                    
                     <button onClick={() => setShowConfigPanel(!showConfigPanel)} className="p-1 rounded hover:bg-purple-100 text-purple-600"><Settings size={16}/></button>
                 </div>
+
                 <div className="flex items-center gap-1 shrink-0 h-10 items-center">
                     <button onClick={() => setShowWidgetLibrary(!showWidgetLibrary)} className="p-2 rounded-full shadow-sm border bg-white hover:scale-105"><Megaphone size={20}/></button>
                     <button onClick={() => setIsVintageMode(!isVintageMode)} className={`p-2 rounded-full shadow-sm border ${isVintageMode ? 'bg-amber-800 text-white' : 'bg-white'}`}><Coffee size={20}/></button>
@@ -237,7 +287,41 @@ const App: React.FC = () => {
       {showConfigPanel && (<div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative"><div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} /></label></div>{data.eventType === EventType.WEDDING && (<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Partner<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} /></label></div>)}<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere<select className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1 w-24" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}><option value="M">Maschio</option><option value="F">Femmina</option></select></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data di Nascita/Evento<input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} /></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/></label></div><button onClick={handleApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">{isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica</button></div>)}
 
       <div className="max-w-[1600px] mx-auto shadow-2xl print:shadow-none transition-all duration-500 relative print-container">
-        {isPoster ? <div className="w-full bg-white print:w-full">{renderFrontPage('w-full')}</div> : isCard ? <div className="flex flex-col lg:flex-row bg-[#f0f0f0] print:flex-row print:w-full">{renderFrontPage('w-full lg:w-1/2 lg:border-r border-dashed border-stone-400')}{renderBackPage('w-full lg:w-1/2')}</div> : (isDigital ? <div className="flex flex-col gap-8 print:block print:gap-0">{renderFrontPage('w-full shadow-xl print:shadow-none print:break-after-page')}{data.extraSpreads.map(s=><div key={s.id}>{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{renderBackPage('w-full shadow-xl print:shadow-none print:break-after-page')}</div> : <><div className={`flex flex-col lg:flex-row ${data.themeId!=='modern'?'bg-[#f0f0f0]':'bg-white'} print:flex-row print:break-after-page`}>{renderFrontPage('w-full lg:w-1/2')}{renderBackPage('w-full lg:w-1/2 border-t lg:border-t-0 lg:border-l border-stone-400 border-dashed')}</div>{data.extraSpreads.map(s=><div key={s.id} className="flex flex-col lg:flex-row bg-[#e8dcc6] print:flex-row mt-8 lg:mt-12 print:mt-0 border-t-8 border-stone-600 print:border-0">{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}<div className="hidden print:block absolute top-1/2 left-0 w-full border-t border-dashed border-black"></div>{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{data.extraSpreads.length===0 && <div className="flex justify-center py-8 print:hidden"><button onClick={addSpread} className="flex items-center gap-2 bg-stone-700 hover:bg-stone-900 text-white px-6 py-3 rounded-full shadow-xl font-bold transition-transform hover:scale-105"><BookOpen size={20}/> Aggiungi Inserto</button></div>}</>)}
+        {/* LOGICA VISUALIZZAZIONE FORMATI (SELETTORE LAYOUT) */}
+        {/* Per ora mostriamo il giornale se non è definito un altro layout specifico */}
+        {/* Domani implementeremo RenderCard e RenderPoster qui dentro */}
+        
+        {/* LAYOUT GIORNALE (Default) */}
+        {(data.formatType === FormatType.NEWSPAPER) && (
+            <>
+                {isPoster ? <div className="w-full bg-white print:w-full">{renderFrontPage('w-full')}</div> : isCard ? <div className="flex flex-col lg:flex-row bg-[#f0f0f0] print:flex-row print:w-full">{renderFrontPage('w-full lg:w-1/2 lg:border-r border-dashed border-stone-400')}{renderBackPage('w-full lg:w-1/2')}</div> : (isDigital ? <div className="flex flex-col gap-8 print:block print:gap-0">{renderFrontPage('w-full shadow-xl print:shadow-none print:break-after-page')}{data.extraSpreads.map(s=><div key={s.id}>{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{renderBackPage('w-full shadow-xl print:shadow-none print:break-after-page')}</div> : <><div className={`flex flex-col lg:flex-row ${data.themeId!=='modern'?'bg-[#f0f0f0]':'bg-white'} print:flex-row print:break-after-page`}>{renderFrontPage('w-full lg:w-1/2')}{renderBackPage('w-full lg:w-1/2 border-t lg:border-t-0 lg:border-l border-stone-400 border-dashed')}</div>{data.extraSpreads.map(s=><div key={s.id} className="flex flex-col lg:flex-row bg-[#e8dcc6] print:flex-row mt-8 lg:mt-12 print:mt-0 border-t-8 border-stone-600 print:border-0">{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}<div className="hidden print:block absolute top-1/2 left-0 w-full border-t border-dashed border-black"></div>{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{data.extraSpreads.length===0 && <div className="flex justify-center py-8 print:hidden"><button onClick={addSpread} className="flex items-center gap-2 bg-stone-700 hover:bg-stone-900 text-white px-6 py-3 rounded-full shadow-xl font-bold transition-transform hover:scale-105"><BookOpen size={20}/> Aggiungi Inserto</button></div>}</>)}
+            </>
+        )}
+        
+        {/* LAYOUT POSTER (Da implementare domani) */}
+        {data.formatType === FormatType.POSTER && (
+            <div className="text-center p-10 bg-white border-4 border-dashed border-stone-300">
+                <h2 className="text-2xl font-bold text-stone-400">Layout POSTER in costruzione...</h2>
+                <p className="text-stone-400">Seleziona "Giornale" per ora.</p>
+            </div>
+        )}
+        
+        {/* LAYOUT BIGLIETTO (Da implementare domani) */}
+        {data.formatType === FormatType.CARD_FOLDABLE && (
+            <div className="text-center p-10 bg-white border-4 border-dashed border-stone-300">
+                <h2 className="text-2xl font-bold text-stone-400">Layout BIGLIETTO in costruzione...</h2>
+                <p className="text-stone-400">Seleziona "Giornale" per ora.</p>
+            </div>
+        )}
+
+        {/* LAYOUT BIGLIETTI VISITA (Da implementare) */}
+        {data.formatType === FormatType.BUSINESS_CARD && (
+            <div className="text-center p-10 bg-white border-4 border-dashed border-stone-300">
+                <h2 className="text-2xl font-bold text-stone-400">Layout BUSINESS CARD in costruzione...</h2>
+                <p className="text-stone-400">Seleziona "Giornale" per ora.</p>
+            </div>
+        )}
+
         <WidgetLayer widgets={data.widgets || []} setWidgets={setWidgets} selectedId={selectedWidgetId} setSelectedId={setSelectedWidgetId} />
       </div>
       <WidgetLibrary isOpen={showWidgetLibrary} onClose={() => setShowWidgetLibrary(false)} onAddWidget={handleAddWidget} />
