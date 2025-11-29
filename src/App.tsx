@@ -54,8 +54,10 @@ const App: React.FC = () => {
 
   const currentTheme = THEMES[data.themeId];
   const isDigital = data.themeId === 'digital';
+  
+  // --- FIX: AGGIORNATO CON I NUOVI NOMI DEI FORMATI ---
   const isPoster = data.formatType === FormatType.POSTER;
-  const isCard = data.formatType === FormatType.CARD;
+  const isCard = data.formatType === FormatType.CARD_FOLDABLE; // <--- CORRETTO QUI
 
   const saveProjectToLibrary = () => {
       const defaultName = data.projectLabel || data.publicationName || "Nuovo Progetto";
@@ -83,7 +85,10 @@ const App: React.FC = () => {
   const openSaveDialog = () => { setBackupFilename(`giornale-${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`); setShowSaveDialog(true); }
 
   const updateTheme = (themeId: ThemeId) => { let newEventType = data.eventType; if (themeId === 'birthday') newEventType = EventType.BIRTHDAY; if (themeId === 'christmas') newEventType = EventType.CHRISTMAS; if (themeId === 'easter') newEventType = EventType.EASTER; const newData = { ...data, themeId, eventType: newEventType }; setData(newData); };
-  const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const newType = e.target.value as EventType; let newTheme = data.themeId; if (newType === EventType.CHRISTMAS) newTheme = 'christmas'; if (newType === EventType.EASTER) newTheme = 'easter'; if (newType === EventType.BIRTHDAY) newTheme = 'birthday'; setShowConfigPanel(true); setData(prev => ({ ...prev, eventType: newType, themeId: newTheme })); };
+  
+  // AGGIORNATO MENU EVENTI CON TUTTI I NUOVI TIPI
+  const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const newType = e.target.value as EventType; let newTheme = data.themeId; if (newType === EventType.CHRISTMAS) newTheme = 'christmas'; if (newType === EventType.EASTER) newTheme = 'easter'; if (newType === EventType.BIRTHDAY) newTheme = 'birthday'; if (newType === EventType.HALLOWEEN) newTheme = 'halloween'; if (newType === EventType.WEDDING) newTheme = 'wedding'; if (newType === EventType.GRADUATION) newTheme = 'graduation'; if (newType === EventType.BAPTISM) newTheme = 'baptism'; if (newType === EventType.COMMUNION) newTheme = 'communion'; setShowConfigPanel(true); setData(prev => ({ ...prev, eventType: newType, themeId: newTheme })); };
+  
   const updateArticle = (id: string, field: string, value: any) => setData(prev => ({ ...prev, articles: { ...prev.articles, [id]: { ...prev.articles[id], [field]: value } } }));
   const updateMeta = (field: keyof NewspaperData, value: string | number) => setData(prev => ({ ...prev, [field]: value }));
   const updateEventConfig = (field: keyof NewspaperData['eventConfig'], value: any) => setData(prev => ({ ...prev, eventConfig: { ...prev.eventConfig, [field]: value } }));
@@ -106,32 +111,7 @@ const App: React.FC = () => {
   const addBlockToSpread = (sid: string, side: 'left'|'right', type: BlockType) => { const newBlock: ContentBlock = { id: Date.now().toString(), type, content: type==='image'?'':'Nuovo...', height: type === 'image' ? 300 : undefined }; setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: [...(side==='left'?s.leftBlocks:s.rightBlocks), newBlock] } : s) })); };
   const updateBlockInSpread = (sid: string, side: 'left'|'right', bid: string, val: string, height?: number) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].map(b => b.id===bid ? {...b, content: val, height: height !== undefined ? height : b.height } : b) } : s) })); };
   const removeBlockInSpread = (sid: string, side: 'left'|'right', bid: string) => { setData(prev => ({ ...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: s[side==='left'?'leftBlocks':'rightBlocks'].filter(b => b.id !== bid) } : s) })); };
-  
-  // --- FIX: Supporto per fontFamily personalizzato nelle Firme ---
-  const handleAddWidget = (type: WidgetType, content: string, subType?: string, fontFamily?: string) => { 
-      const newWidget: WidgetData = { 
-          id: `widget-${Date.now()}`, 
-          type, 
-          content, 
-          text: type === 'bubble' ? 'Clicca...' : (type === 'text' ? content : undefined), 
-          style: { 
-              x: window.innerWidth/2-100, 
-              y: window.scrollY+300, 
-              width: type === 'sticker' ? 100 : 200, 
-              height: type === 'sticker' ? 100 : 100, 
-              rotation: 0, 
-              zIndex: 50, 
-              fontSize: 24, 
-              color: '#000000', 
-              fontFamily: fontFamily || 'Chomsky', // Usa il font passato o Chomsky di default
-              flipX: false 
-          } 
-      }; 
-      setData(prev => ({ ...prev, widgets: [...(prev.widgets || []), newWidget] })); 
-      setSelectedWidgetId(newWidget.id); 
-      setShowWidgetLibrary(false); 
-  };
-  
+  const handleAddWidget = (type: WidgetType, content: string, subType?: string, fontFamily?: string) => { const newWidget: WidgetData = { id: `widget-${Date.now()}`, type, content, text: type === 'bubble' ? 'Clicca...' : (type === 'text' ? content : undefined), style: { x: window.innerWidth/2-100, y: window.scrollY+300, width: type === 'sticker' ? 100 : 200, height: type === 'sticker' ? 100 : 100, rotation: 0, zIndex: 50, fontSize: 24, color: '#000000', fontFamily: fontFamily || 'Chomsky', flipX: false } }; setData(prev => ({ ...prev, widgets: [...(prev.widgets || []), newWidget] })); setSelectedWidgetId(newWidget.id); setShowWidgetLibrary(false); };
   const setWidgets = (action: React.SetStateAction<WidgetData[]>) => { setData(prev => { const newWidgets = typeof action === 'function' ? action(prev.widgets || []) : action; return { ...prev, widgets: newWidgets }; }); };
 
   const pageHeightClass = "h-[1350px] overflow-hidden";
@@ -223,7 +203,19 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 p-2 pt-3 rounded-lg bg-stone-100 border border-stone-200 relative shrink-0 h-10 items-center">
                     <div className="absolute -top-2 left-2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">Stile</div>
-                    <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.eventType} onChange={handleEventTypeChange}><option value={EventType.GENERIC}>Generico</option><option value={EventType.BIRTHDAY}>Compleanno</option><option value={EventType.WEDDING}>Matrimonio</option></select>
+                    <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.eventType} onChange={handleEventTypeChange}>
+                        <option value={EventType.GENERIC}>Generico</option>
+                        <option value={EventType.BIRTHDAY}>Compleanno</option>
+                        <option value={EventType.EIGHTEEN}>18 Anni</option>
+                        <option value={EventType.WEDDING}>Matrimonio</option>
+                        <option value={EventType.GRADUATION}>Laurea</option>
+                        <option value={EventType.CHRISTMAS}>Natale</option>
+                        <option value={EventType.EASTER}>Pasqua</option>
+                        <option value={EventType.HALLOWEEN}>Halloween</option>
+                        <option value={EventType.CRESIMA}>Cresima</option>
+                        <option value={EventType.BAPTISM}>Battesimo</option>
+                        <option value={EventType.COMMUNION}>Comunione</option>
+                    </select>
                     <div className="w-px h-4 bg-stone-300"></div>
                     <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.themeId} onChange={(e) => updateTheme(e.target.value as ThemeId)}>{Object.values(THEMES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
                     <button onClick={() => setShowConfigPanel(!showConfigPanel)} className="p-1 rounded hover:bg-purple-100 text-purple-600"><Settings size={16}/></button>
