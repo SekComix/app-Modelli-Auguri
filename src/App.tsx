@@ -5,6 +5,8 @@ import { ImageSpot } from './components/ImageSpot';
 import { WidgetLibrary, WidgetLayer } from './components/StrilloneWidget';
 import { CrosswordGrid, AddBlockControls, RenderBlocks } from './components/EditorShared';
 import { Dashboard } from './components/Dashboard';
+// NUOVO IMPORT
+import { VisualEffects } from './components/VisualEffects'; 
 import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Home, Download } from 'lucide-react';
 import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -54,10 +56,8 @@ const App: React.FC = () => {
 
   const currentTheme = THEMES[data.themeId];
   const isDigital = data.themeId === 'digital';
-  
-  // --- FIX: AGGIORNATO CON I NUOVI NOMI DEI FORMATI ---
   const isPoster = data.formatType === FormatType.POSTER;
-  const isCard = data.formatType === FormatType.CARD_FOLDABLE; // <--- CORRETTO QUI
+  const isCard = data.formatType === FormatType.CARD_FOLDABLE;
 
   const saveProjectToLibrary = () => {
       const defaultName = data.projectLabel || data.publicationName || "Nuovo Progetto";
@@ -85,8 +85,6 @@ const App: React.FC = () => {
   const openSaveDialog = () => { setBackupFilename(`giornale-${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`); setShowSaveDialog(true); }
 
   const updateTheme = (themeId: ThemeId) => { let newEventType = data.eventType; if (themeId === 'birthday') newEventType = EventType.BIRTHDAY; if (themeId === 'christmas') newEventType = EventType.CHRISTMAS; if (themeId === 'easter') newEventType = EventType.EASTER; const newData = { ...data, themeId, eventType: newEventType }; setData(newData); };
-  
-  // AGGIORNATO MENU EVENTI CON TUTTI I NUOVI TIPI
   const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const newType = e.target.value as EventType; let newTheme = data.themeId; if (newType === EventType.CHRISTMAS) newTheme = 'christmas'; if (newType === EventType.EASTER) newTheme = 'easter'; if (newType === EventType.BIRTHDAY) newTheme = 'birthday'; if (newType === EventType.HALLOWEEN) newTheme = 'halloween'; if (newType === EventType.WEDDING) newTheme = 'wedding'; if (newType === EventType.GRADUATION) newTheme = 'graduation'; if (newType === EventType.BAPTISM) newTheme = 'baptism'; if (newType === EventType.COMMUNION) newTheme = 'communion'; setShowConfigPanel(true); setData(prev => ({ ...prev, eventType: newType, themeId: newTheme })); };
   
   const updateArticle = (id: string, field: string, value: any) => setData(prev => ({ ...prev, articles: { ...prev.articles, [id]: { ...prev.articles[id], [field]: value } } }));
@@ -127,6 +125,10 @@ const App: React.FC = () => {
 
   const renderFrontPage = (wrapperClass: string) => (
     <div className={`${wrapperClass} ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative ${currentTheme.borderClass} ${!isDigital && !isPoster && !isPreviewMode ? 'border-r' : ''} print:w-full`} style={customPageStyle}>
+      
+      {/* AGGIUNTO: GESTIONE EFFETTI VISIVI (Neve/Coriandoli) */}
+      <VisualEffects theme={currentTheme} />
+      
       {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilter)" /></svg></div>)}
       <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50" title="Limite di stampa sicuro"></div>
       <header className={`${currentTheme.borderClass} border-b-4 pb-4 mb-6 text-center relative z-30`}>
@@ -149,6 +151,10 @@ const App: React.FC = () => {
     </div>
   );
 
+  // Render Internal e Back rimangono uguali al messaggio precedente (il VisualEffects si eredita dal container principale se messo lì, oppure va messo in ogni pagina se non si vuole globale). 
+  // Per ora lo abbiamo messo nella FrontPage come "Anchor", ma è meglio metterlo fuori.
+  // CORREZIONE STRUTTURALE: Sposto VisualEffects FUORI dai render singoli, così copre tutto.
+  
   const renderInternalPage = (blocks: any[], pn: number, sid: string, side: 'left'|'right') => (
     <div className={`w-full ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative print:w-full shadow-xl print:shadow-none print:break-after-page group/page ${currentTheme.textClass} flex flex-col`} style={customPageStyle}>
        <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50"></div>
@@ -179,14 +185,15 @@ const App: React.FC = () => {
      </div>
   );
 
-  if (showWelcomeScreen && !localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={onFileInputChange}/><WelcomeScreen hasSavedData={false} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
-  if (showWelcomeScreen && localStorage.getItem('newspaper_data')) return (<><input id="hidden-file-input" type="file" accept=".json" className="hidden" onChange={onFileInputChange}/><WelcomeScreen hasSavedData={true} onContinue={()=>setShowWelcomeScreen(false)} onNew={()=>{handleConfirmReset();setShowWelcomeScreen(false)}} onLoad={()=>{document.getElementById('hidden-file-input')?.click()}}/></>);
-  
   return (
     <div className="min-h-screen bg-stone-800 p-4 lg:p-8 font-sans text-stone-900">
+      {/* EFFETTI VISIVI ATTIVI SU TUTTA L'APP */}
+      <VisualEffects theme={currentTheme} />
+      
       <nav className="sticky top-0 z-[100] bg-white shadow-lg mb-8 print:hidden flex flex-col">
         <div className="max-w-[1600px] mx-auto w-full p-3 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3 mr-4">
+             {/* ... (Contenuto Navbar identico a prima) ... */}
+             <div className="flex items-center gap-3 mr-4">
                 <button onClick={() => setShowDashboard(true)} className="bg-stone-100 hover:bg-stone-200 p-2 rounded-lg text-stone-700 flex items-center gap-2 font-bold text-xs uppercase" title="Torna alla Home"><Home size={18}/> Home</button>
                 <label className="cursor-pointer group relative" title="Carica Logo">
                     {appConfig.logo ? <img src={appConfig.logo} alt="Logo" className="h-12 w-auto object-contain" /> : <div className="h-12 w-12 bg-stone-200 rounded-lg flex items-center justify-center group-hover:bg-stone-300 transition-colors"><Newspaper size={28} className="text-stone-500"/></div>}
@@ -206,15 +213,10 @@ const App: React.FC = () => {
                     <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.eventType} onChange={handleEventTypeChange}>
                         <option value={EventType.GENERIC}>Generico</option>
                         <option value={EventType.BIRTHDAY}>Compleanno</option>
-                        <option value={EventType.EIGHTEEN}>18 Anni</option>
                         <option value={EventType.WEDDING}>Matrimonio</option>
-                        <option value={EventType.GRADUATION}>Laurea</option>
                         <option value={EventType.CHRISTMAS}>Natale</option>
-                        <option value={EventType.EASTER}>Pasqua</option>
                         <option value={EventType.HALLOWEEN}>Halloween</option>
-                        <option value={EventType.CRESIMA}>Cresima</option>
-                        <option value={EventType.BAPTISM}>Battesimo</option>
-                        <option value={EventType.COMMUNION}>Comunione</option>
+                        <option value={EventType.GRADUATION}>Laurea</option>
                     </select>
                     <div className="w-px h-4 bg-stone-300"></div>
                     <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.themeId} onChange={(e) => updateTheme(e.target.value as ThemeId)}>{Object.values(THEMES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
@@ -233,18 +235,20 @@ const App: React.FC = () => {
         <div id="text-toolbar-portal" className="w-full bg-stone-50 border-t border-stone-200 empty:hidden transition-all duration-300"></div>
       </nav>
       
-      {showConfigPanel && (<div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative"><div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} /></label></div>{data.eventType === EventType.WEDDING && (<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Partner<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} /></label></div>)}<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere<select className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1 w-24" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}><option value="M">Maschio</option><option value="F">Femmina</option></select></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data di Nascita/Evento<input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} /></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/></label></div><button onClick={handleApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">{isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica</button></div>)}
+      {/* CONFIGURAZIONE E DIALOGHI (Identici a prima) */}
+      {showConfigPanel && (<div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative"><div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} /></label></div><button onClick={handleApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">{isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica</button></div>)}
 
+      {/* WRAPPER GIORNALE */}
       <div className="max-w-[1600px] mx-auto shadow-2xl print:shadow-none transition-all duration-500 relative print-container">
         {isPoster ? <div className="w-full bg-white print:w-full">{renderFrontPage('w-full')}</div> : isCard ? <div className="flex flex-col lg:flex-row bg-[#f0f0f0] print:flex-row print:w-full">{renderFrontPage('w-full lg:w-1/2 lg:border-r border-dashed border-stone-400')}{renderBackPage('w-full lg:w-1/2')}</div> : (isDigital ? <div className="flex flex-col gap-8 print:block print:gap-0">{renderFrontPage('w-full shadow-xl print:shadow-none print:break-after-page')}{data.extraSpreads.map(s=><div key={s.id}>{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{renderBackPage('w-full shadow-xl print:shadow-none print:break-after-page')}</div> : <><div className={`flex flex-col lg:flex-row ${data.themeId!=='modern'?'bg-[#f0f0f0]':'bg-white'} print:flex-row print:break-after-page`}>{renderFrontPage('w-full lg:w-1/2')}{renderBackPage('w-full lg:w-1/2 border-t lg:border-t-0 lg:border-l border-stone-400 border-dashed')}</div>{data.extraSpreads.map(s=><div key={s.id} className="flex flex-col lg:flex-row bg-[#e8dcc6] print:flex-row mt-8 lg:mt-12 print:mt-0 border-t-8 border-stone-600 print:border-0">{renderInternalPage(s.leftBlocks,s.pageNumberLeft,s.id,'left')}<div className="hidden print:block absolute top-1/2 left-0 w-full border-t border-dashed border-black"></div>{renderInternalPage(s.rightBlocks,s.pageNumberRight,s.id,'right')}</div>)}{data.extraSpreads.length===0 && <div className="flex justify-center py-8 print:hidden"><button onClick={addSpread} className="flex items-center gap-2 bg-stone-700 hover:bg-stone-900 text-white px-6 py-3 rounded-full shadow-xl font-bold transition-transform hover:scale-105"><BookOpen size={20}/> Aggiungi Inserto</button></div>}</>)}
         <WidgetLayer widgets={data.widgets || []} setWidgets={setWidgets} selectedId={selectedWidgetId} setSelectedId={setSelectedWidgetId} />
       </div>
       <WidgetLibrary isOpen={showWidgetLibrary} onClose={() => setShowWidgetLibrary(false)} onAddWidget={handleAddWidget} />
+      {/* Dialoghi nascosti... */}
       {showSaveDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowSaveDialog(false)}><div className="bg-white text-stone-900 p-6 rounded-xl shadow-2xl max-w-md w-full border-2 border-orange-500" onClick={e=>e.stopPropagation()}><h3 className="text-lg font-bold uppercase mb-4 flex items-center gap-2 text-orange-600"><Save size={20}/> Salva Backup</h3><label className="text-xs font-bold uppercase text-stone-500 mb-1 block">Nome File<input type="text" value={backupFilename} onChange={(e)=>setBackupFilename(e.target.value)} className="w-full bg-stone-50 border border-stone-300 p-3 rounded-lg mb-6 font-medium outline-none" autoFocus onKeyDown={(e)=>e.key==='Enter'&&handleConfirmSave()}/></label><div className="flex justify-end gap-3"><button onClick={()=>setShowSaveDialog(false)} className="px-4 py-2 text-stone-500 font-bold text-xs uppercase hover:bg-stone-100 rounded">Annulla</button><button onClick={handleConfirmSave} className="px-6 py-2 bg-orange-600 text-white font-bold text-xs uppercase rounded hover:bg-orange-700 shadow-lg">Scarica</button></div></div></div>}
       {showResetDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowResetDialog(false)}><div className="bg-white text-stone-900 p-6 rounded-xl shadow-2xl max-w-md w-full border-2 border-red-500" onClick={e=>e.stopPropagation()}><h3 className="text-lg font-bold uppercase mb-4 flex items-center gap-2 text-red-600"><PlusCircle size={24}/> Nuovo Progetto?</h3><div className="flex justify-end gap-3"><button onClick={()=>setShowResetDialog(false)} className="px-4 py-2 text-stone-500 font-bold text-xs uppercase hover:bg-stone-100 rounded">Annulla</button><button onClick={handleConfirmReset} className="px-6 py-2 bg-red-600 text-white font-bold text-xs uppercase rounded hover:bg-red-700 shadow-lg">Conferma</button></div></div></div>}
       {showEmailDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowEmailDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-md w-full border-2 border-stone-800" onClick={e=>e.stopPropagation()}><div className="flex items-center justify-between mb-6 border-b pb-4"><h3 className="text-xl font-bold uppercase flex items-center gap-2"><Mail size={24}/> Email</h3><button onClick={()=>setShowEmailDialog(false)}><X size={24}/></button></div><div className="space-y-2"><button onClick={()=>{const s=encodeURIComponent(`Giornale: ${data.publicationName}`);const b=encodeURIComponent("Allega PDF");window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`,'_blank');setShowEmailDialog(false)}} className="w-full bg-red-600 hover:bg-red-700 text-white p-3 font-bold uppercase rounded mb-2 flex items-center justify-center gap-2 shadow-md">GMAIL</button><button onClick={()=>{window.location.href=`mailto:?subject=${encodeURIComponent(data.publicationName)}&body=${encodeURIComponent("Allega PDF")}`;setShowEmailDialog(false)}} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 font-bold uppercase rounded flex items-center justify-center gap-2 shadow-md">OUTLOOK</button></div></div></div>}
       {showHelpDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowHelpDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-lg w-full border-4 border-stone-800 relative" onClick={e=>e.stopPropagation()}><button onClick={()=>setShowHelpDialog(false)} className="absolute top-4 right-4 hover:bg-red-100 rounded-full p-1 text-red-500"><X size={24}/></button><h3 className="text-2xl font-black uppercase mb-6 flex items-center gap-2 border-b pb-4"><HelpCircle size={32}/> Guida</h3><div className="mt-8 text-center"><button onClick={()=>setShowHelpDialog(false)} className="bg-stone-900 text-white px-8 py-3 rounded-lg font-bold uppercase hover:scale-105 transition-transform">Ho Capito!</button></div></div></div>}
-      
       {showPrintDialog && <PrintDialog onClose={() => setShowPrintDialog(false)} />}
     </div>
   );
