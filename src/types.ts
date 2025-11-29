@@ -39,7 +39,7 @@ export interface ExtraSpread {
   rightBlocks: ContentBlock[];
 }
 
-export type ThemeId = 'classic' | 'modern' | 'vintage' | 'usa' | 'germany' | 'france' | 'italy' | 'digital' | 'birthday' | 'christmas' | 'easter';
+export type ThemeId = 'classic' | 'modern' | 'vintage' | 'usa' | 'germany' | 'france' | 'italy' | 'digital' | 'birthday' | 'christmas' | 'easter' | 'halloween' | 'graduation' | 'wedding' | 'baptism' | 'communion';
 
 export interface ThemeConfig {
   id: ThemeId;
@@ -54,6 +54,8 @@ export interface ThemeConfig {
   bodyFont: string;
   imageFilter: string;
   headerLayout: 'center' | 'left' | 'modern' | 'digital';
+  // NUOVO: Elementi decorativi specifici del tema (es. neve, coriandoli)
+  decoration?: 'none' | 'snow' | 'confetti' | 'hearts' | 'spooky';
 }
 
 export enum EventType {
@@ -65,13 +67,18 @@ export enum EventType {
   COMMUNION = 'COMMUNION',
   GRADUATION = 'GRADUATION',
   CHRISTMAS = 'CHRISTMAS',
-  EASTER = 'EASTER'
+  EASTER = 'EASTER',
+  HALLOWEEN = 'HALLOWEEN',
+  CRESIMA = 'CRESIMA'
 }
 
+// QUI DEFINIAMO I TUOI NUOVI LAYOUT
 export enum FormatType {
-  NEWSPAPER = 'NEWSPAPER',
-  POSTER = 'POSTER',
-  CARD = 'CARD'
+  NEWSPAPER = 'NEWSPAPER',      // Giornale A4/A3
+  POSTER = 'POSTER',            // Locandina A3 (Titolo enorme + Foto)
+  CARD_FOLDABLE = 'CARD_FOLD',  // Biglietto Pieghevole (Auguri)
+  BUSINESS_CARD = 'BIZ_CARD',   // Biglietti da Visita (Griglia)
+  ALBUM_PAGE = 'ALBUM'          // Pagina Album Fotografico
 }
 
 export interface EventConfig {
@@ -106,7 +113,7 @@ export interface WidgetData {
 }
 
 export interface NewspaperData {
-  projectLabel?: string; // <--- NUOVO CAMPO: Nome del salvataggio (diverso dalla testata)
+  projectLabel?: string;
   themeId: ThemeId;
   eventType: EventType;
   formatType: FormatType;
