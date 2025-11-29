@@ -4,7 +4,7 @@ export const DEFAULT_ASSETS = {
     // 1. PERSONAGGI
    mascots: [
         // ZEBRA JUVE (In cima alla lista!)
-        { id: 'zebra_juve', label: 'Zebretta', src: 'https://cdn-icons-png.flaticon.com/512/2395/2395798.png' },
+        { id: 'zebra_real', label: 'Zebra', src: 'https://cdn-icons-png.flaticon.com/512/616/616459.png' },
         { id: 'strillone', label: 'Strillone', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995655.png' },
         { id: 'gentleman', label: 'Gentiluomo', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995515.png' },
         { id: 'lady_vintage', label: 'Dama', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995539.png' },
