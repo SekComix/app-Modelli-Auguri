@@ -4,7 +4,6 @@ import { Upload, X, Trash2, Move, Library, MessageCircle, Gift, Smile, Type, Rot
 import { WidgetData, WidgetType } from '../types';
 import { DEFAULT_ASSETS } from '../assetsData';
 
-// --- FONT PER LE FIRME ---
 const SIGNATURE_FONTS = [
     { name: 'Elegante', family: 'Great Vibes', url: 'https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap' },
     { name: 'Semplice', family: 'Sacramento', url: 'https://fonts.googleapis.com/css2?family=Sacramento&display=swap' },
@@ -27,13 +26,12 @@ const compressImage = (file: File): Promise<string> => {
                 canvas.width = MAX_WIDTH;
                 canvas.height = img.height * scaleSize;
                 const ctx = canvas.getContext('2d');
-                if (!ctx) { reject("Canvas error"); return; }
+                if(!ctx) { reject(); return; }
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 resolve(canvas.toDataURL('image/jpeg', 0.7)); 
             };
-            img.onerror = () => reject("Image load error");
         };
-        reader.onerror = () => reject("File read error");
+        reader.onerror = () => reject();
     });
 };
 
@@ -51,9 +49,6 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
     const [signatureName, setSignatureName] = useState('');
     const [selectedSigFont, setSelectedSigFont] = useState(SIGNATURE_FONTS[0].family);
     
-    // Ref per l'input file
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
     const [savedQRs, setSavedQRs] = useState<{label: string, link: string}[]>(() => {
         try { const s = localStorage.getItem('saved_qrs'); return s ? JSON.parse(s) : []; } catch(e){return[];}
     });
@@ -73,33 +68,22 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (!file.type.startsWith('image/')) { alert("Per favore, seleziona solo file immagine."); return; }
-            
+            if (!file.type.startsWith('image/')) { alert("Solo immagini."); return; }
             setIsLoading(true);
             try {
                 const compressedBase64 = await compressImage(file);
                 onAddWidget('mascot', compressedBase64, 'custom');
-                
-                // Salvataggio persistente
                 const newMascot = { id: `custom-${Date.now()}`, label: 'Mio Personaggio', src: compressedBase64 };
                 const updatedMascots = [...customMascots, newMascot];
                 setCustomMascots(updatedMascots);
-                try { localStorage.setItem('custom_mascots', JSON.stringify(updatedMascots)); } catch (e) { console.warn("Memoria piena, immagine non salvata nella libreria."); }
-                
-                // Reset input file per permettere ricaricamento dello stesso file
-                if(fileInputRef.current) fileInputRef.current.value = '';
-            } catch (err) { 
-                console.error(err);
-                alert("Errore durante il caricamento dell'immagine. Riprova con un file più piccolo."); 
-            } finally { 
-                setIsLoading(false); 
-            }
+                try { localStorage.setItem('custom_mascots', JSON.stringify(updatedMascots)); } catch (e) { alert("Memoria piena."); }
+            } catch (err) { alert("Errore upload."); } finally { setIsLoading(false); }
         }
     };
 
     const removeCustomMascot = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if(!confirm("Vuoi eliminare questa immagine dalla libreria?")) return;
+        if(!confirm("Eliminare immagine?")) return;
         const updated = customMascots.filter(m => m.id !== id);
         setCustomMascots(updated);
         localStorage.setItem('custom_mascots', JSON.stringify(updated));
@@ -136,7 +120,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
         <div className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm" onClick={onClose}>
             <div className="absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[9999] flex flex-col border-l-4 border-blue-500 animate-fade-in-up" onClick={e => e.stopPropagation()}>
                 <div className="p-6 bg-stone-50 border-b flex justify-between items-center">
-                    <div><h2 className="text-2xl font-black text-stone-800 flex items-center gap-2"><Library className="text-blue-600"/> Libreria Widget</h2><p className="text-xs text-stone-500 font-bold uppercase tracking-wider mt-1">Crea, Carica, Decora</p></div>
+                    <div><h2 className="text-2xl font-black text-stone-800 flex items-center gap-2"><Library className="text-blue-600"/> Libreria Widget</h2></div>
                     <button onClick={onClose} className="p-2 hover:bg-red-100 rounded-full text-stone-500 hover:text-red-500 transition-colors"><X size={24}/></button>
                 </div>
 
@@ -156,13 +140,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                             <label className={`flex items-center gap-3 p-4 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors mb-6 group ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div className="bg-white p-2 rounded-full shadow-sm group-hover:scale-110 transition-transform"><Upload className="text-blue-500" size={20}/></div>
                                 <div><h4 className="font-bold text-blue-900 text-sm">{isLoading ? 'CARICAMENTO...' : 'CARICA FOTO TUA'}</h4><p className="text-[10px] text-blue-600">Ottimizzata per il sito</p></div>
-                                <input 
-                                    ref={fileInputRef}
-                                    type="file" 
-                                    accept="image/png, image/jpeg, image/webp" 
-                                    className="hidden" 
-                                    onChange={handleUpload}
-                                />
+                                <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={handleUpload}/>
                             </label>
                             <div className="grid grid-cols-2 gap-4">
                                 {customMascots.map(m => (
@@ -171,9 +149,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                                         <button onClick={(e) => removeCustomMascot(m.id, e)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"><X size={12}/></button>
                                     </div>
                                 ))}
-                                {DEFAULT_ASSETS.mascots.map(m => (
-                                    <button key={m.id} onClick={() => onAddWidget('mascot', m.src)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><img src={m.src} alt={m.label} className="h-24 object-contain"/><span className="text-xs font-bold text-stone-600 uppercase">{m.label}</span></button>
-                                ))}
+                                {DEFAULT_ASSETS.mascots.map(m => (<button key={m.id} onClick={() => onAddWidget('mascot', m.src)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><img src={m.src} alt={m.label} className="h-24 object-contain"/><span className="text-xs font-bold text-stone-600 uppercase">{m.label}</span></button>))}
                             </div>
                         </>
                     )}
@@ -196,23 +172,25 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                         </div>
                     )}
 
-                    {/* EMOTIONS, BUBBLES, STICKERS, QR, TOOLS (Rimangono uguali) */}
                     {activeTab === 'emotions' && (
                         <div className="grid grid-cols-4 gap-4">
                             {DEFAULT_ASSETS.emotions.map(e => (<button key={e.id} onClick={() => onAddWidget('sticker', e.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-pink-500 hover:shadow-md transition-all flex flex-col items-center justify-center aspect-square gap-1"><span className="text-3xl">{e.content}</span><span className="text-[9px] font-bold text-stone-500 uppercase truncate w-full text-center">{e.label}</span></button>))}
                         </div>
                     )}
+
                     {activeTab === 'bubbles' && (
                         <div className="grid grid-cols-2 gap-4">
                              {DEFAULT_ASSETS.bubbles.map(b => (<button key={b.id} onClick={() => onAddWidget('bubble', b.svg)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><div className="h-20 w-full" dangerouslySetInnerHTML={{__html: b.svg}} /><span className="text-xs font-bold text-stone-600 uppercase">{b.label}</span></button>))}
                             <button onClick={() => onAddWidget('text', '')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><div className="h-20 flex items-center justify-center"><Type size={32} className="text-stone-400"/></div><span className="text-xs font-bold text-stone-600 uppercase">Solo Testo</span></button>
                         </div>
                     )}
+
                      {activeTab === 'stickers' && (
                         <div className="grid grid-cols-3 gap-4">
                             {DEFAULT_ASSETS.stickers.map(s => (<button key={s.id} onClick={() => onAddWidget('sticker', s.src || s.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2 aspect-square justify-center">{s.src ? <img src={s.src} className="h-10 w-10 object-contain"/> : <span className="text-4xl">{s.content}</span>}<span className="text-xs font-bold text-stone-600 uppercase truncate w-full text-center">{s.label}</span></button>))}
                         </div>
                     )}
+
                     {activeTab === 'qr' && (
                         <div className="space-y-6">
                             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
@@ -245,6 +223,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                             )}
                         </div>
                     )}
+
                     {activeTab === 'tools' && (
                         <div className="space-y-3">
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3"><h4 className="font-bold text-blue-800 flex items-center gap-2 mb-1 text-sm"><Scissors size={16}/> Rimuovi Sfondo</h4><p className="text-[10px] text-stone-600 mb-2">Ritaglia persone e oggetti per mascotte.</p><a href="https://www.remove.bg/it/upload" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Remove.bg <ExternalLink size={10}/></a></div>
@@ -261,4 +240,106 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
         </div>,
         document.body
     );
+};
+
+interface DraggableWidgetProps {
+    widget: WidgetData;
+    isSelected: boolean;
+    onSelect: () => void;
+    onUpdate: (changes: Partial<WidgetData['style']> & { text?: string }) => void;
+    onRemove: () => void;
+}
+
+const DraggableWidget: React.FC<DraggableWidgetProps> = ({ widget, isSelected, onSelect, onUpdate, onRemove }) => {
+    const nodeRef = useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
+    const [isResizing, setIsResizing] = useState(false);
+    const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
+    const [initialSize, setInitialSize] = useState({ w: 0, h: 0 });
+    const [isEditingText, setIsEditingText] = useState(false);
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+            const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+            const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+            if (isDragging) {
+                const dx = clientX - dragStart.x;
+                const dy = clientY - dragStart.y;
+                onUpdate({ x: initialPos.x + dx, y: initialPos.y + dy });
+            } else if (isResizing) {
+                 const dx = clientX - resizeStart.x;
+                 const dy = clientY - resizeStart.y;
+                 onUpdate({ width: Math.max(30, initialSize.w + dx), height: Math.max(30, initialSize.h + dy) });
+            }
+        };
+        const handleMouseUp = () => { setIsDragging(false); setIsResizing(false); };
+        if (isDragging || isResizing) {
+            window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); window.addEventListener('touchmove', handleMouseMove, { passive: false }); window.addEventListener('touchend', handleMouseUp);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); window.removeEventListener('touchmove', handleMouseMove); window.removeEventListener('touchend', handleMouseUp);
+        };
+    }, [isDragging, isResizing, dragStart, resizeStart, initialPos, initialSize, onUpdate]);
+
+    const startDrag = (e: React.MouseEvent | React.TouchEvent) => {
+        if (isEditingText) return;
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        onSelect(); setIsDragging(true); setDragStart({ x: clientX, y: clientY }); setInitialPos({ x: widget.style.x, y: widget.style.y });
+    };
+
+    const startResize = (e: React.MouseEvent | React.TouchEvent) => {
+        e.stopPropagation();
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        setIsResizing(true); setResizeStart({ x: clientX, y: clientY }); setInitialSize({ w: widget.style.width, h: widget.style.height });
+    };
+
+    const handleRotate = (e: React.MouseEvent) => {
+        e.stopPropagation(); const newRot = (widget.style.rotation + 45) % 360; onUpdate({ rotation: newRot });
+    };
+
+    return (
+        <div ref={nodeRef} className={`absolute group cursor-move select-none ${isSelected ? 'z-[50]' : 'z-[10]'}`} style={{ left: widget.style.x, top: widget.style.y, width: widget.style.width, height: widget.style.height, transform: `rotate(${widget.style.rotation}deg) scaleX(${widget.style.flipX ? -1 : 1})`, zIndex: isSelected ? 999 : widget.style.zIndex, touchAction: 'none' }} onMouseDown={startDrag} onTouchStart={startDrag} onDoubleClick={() => (widget.type === 'bubble' || widget.type === 'text') && setIsEditingText(true)}>
+            <div className="w-full h-full relative pointer-events-none">
+                {widget.type === 'qrcode' ? (
+                     <div className="w-full h-full bg-white p-2 border-2 border-black relative shadow-lg"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(widget.content)}`} alt="QR Code" className="w-full h-full object-contain" draggable={false}/><div className="absolute -bottom-6 left-0 right-0 text-center bg-black text-white text-[10px] py-0.5 font-bold uppercase tracking-widest">SCAN ME</div></div>
+                ) : widget.type === 'bubble' ? (
+                     <div className="w-full h-full relative"><div className="w-full h-full" dangerouslySetInnerHTML={{__html: widget.content}} /><div className="absolute inset-0 flex items-center justify-center p-4 text-center pointer-events-auto">{isEditingText ? (<textarea autoFocus className="w-full h-full bg-transparent outline-none resize-none text-center overflow-hidden" style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color }} value={widget.text} onChange={(e) => onUpdate({ text: e.target.value })} onBlur={() => setIsEditingText(false)} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}/>) : (<span style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color, whiteSpace: 'pre-wrap' }}>{widget.text || "Doppio clic..."}</span>)}</div></div>
+                ) : widget.type === 'text' ? (
+                    <div className="w-full h-full flex items-center justify-center pointer-events-auto">{isEditingText ? (<input autoFocus className="w-full bg-transparent outline-none text-center border-2 border-blue-300 border-dashed" style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color, fontWeight: 'bold' }} value={widget.text} onChange={(e) => onUpdate({ text: e.target.value })} onBlur={() => setIsEditingText(false)} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}/>) : (<span className="font-bold drop-shadow-md" style={{ fontSize: `${widget.style.fontSize}px`, fontFamily: widget.style.fontFamily, color: widget.style.color }}>{widget.text || "Testo"}</span>)}</div>
+                ) : (
+                    (widget.content.startsWith('<svg') || widget.content.startsWith('data:image/svg')) ? <div dangerouslySetInnerHTML={{__html: widget.content}} className="w-full h-full drop-shadow-xl"/> : (widget.content.match(/(\p{Emoji_Presentation}|\p{Extended_Pictographic})/u) ? <div className="w-full h-full flex items-center justify-center" style={{fontSize: `${Math.min(widget.style.width, widget.style.height)}px`}}>{widget.content}</div> : <img src={widget.content} alt="widget" className="w-full h-full object-contain drop-shadow-xl pointer-events-none" draggable={false} />)
+                )}
+            </div>
+            {isSelected && (
+                <div className="absolute -inset-2 border-2 border-blue-500 rounded-lg pointer-events-none">
+                    <div className="absolute -bottom-3 -right-3 w-8 h-8 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto flex items-center justify-center shadow-md z-50" onMouseDown={startResize} onTouchStart={startResize}><div className="w-3 h-3 bg-blue-500 rounded-full"/></div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-8 h-8 bg-white border-2 border-blue-500 rounded-full cursor-pointer pointer-events-auto flex items-center justify-center shadow-md" onClick={handleRotate}><RotateCw size={14} className="text-blue-600"/></div>
+                    <div className="absolute -bottom-14 left-1/2 -translate-x-1/2 flex gap-2 bg-white shadow-xl border border-stone-200 p-2 rounded-lg pointer-events-auto scale-90 z-50">
+                        <button onClick={(e) => { e.stopPropagation(); onUpdate({ flipX: !widget.style.flipX }); }} className="p-2 hover:bg-stone-100 rounded bg-stone-50" title="Rifletti"><Move size={16}/></button>
+                        <button onClick={(e) => { e.stopPropagation(); onUpdate({ zIndex: widget.style.zIndex + 1 }); }} className="p-2 hover:bg-stone-100 rounded bg-stone-50" title="Porta Su"><Copy size={16}/></button>
+                        <div className="w-px bg-stone-300 h-6 my-auto"/>
+                        <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="p-2 hover:bg-red-100 text-red-500 rounded bg-red-50" title="Elimina"><Trash2 size={16}/></button>
+                        {(widget.type === 'bubble' || widget.type === 'text') && (<><div className="w-px bg-stone-300 h-6 my-auto"/><input type="color" value={widget.style.color} onChange={(e) => onUpdate({color: e.target.value})} className="w-8 h-8 p-0 border-0 rounded cursor-pointer"/><button onClick={(e) => { e.stopPropagation(); onUpdate({ fontSize: (widget.style.fontSize || 20) + 2 }); }} className="p-2 font-bold text-xs hover:bg-stone-100 border rounded">A+</button><button onClick={(e) => { e.stopPropagation(); onUpdate({ fontSize: (widget.style.fontSize || 20) - 2 }); }} className="p-2 font-bold text-xs hover:bg-stone-100 border rounded">A-</button></>)}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+interface WidgetLayerProps {
+    widgets: WidgetData[];
+    setWidgets: React.Dispatch<React.SetStateAction<WidgetData[]>>;
+    selectedId: string | null;
+    setSelectedId: (id: string | null) => void;
+}
+
+export const WidgetLayer: React.FC<WidgetLayerProps> = ({ widgets, setWidgets, selectedId, setSelectedId }) => {
+    const handleUpdate = (id: string, changes: Partial<WidgetData['style']> & { text?: string }) => { setWidgets(prev => prev.map(w => { if (w.id !== id) return w; const { text, ...styleChanges } = changes; return { ...w, text: text !== undefined ? text : w.text, style: { ...w.style, ...styleChanges } }; })); };
+    const handleRemove = (id: string) => { setWidgets(prev => prev.filter(w => w.id !== id)); setSelectedId(null); };
+    return (<div className="absolute inset-0 overflow-hidden pointer-events-none z-[50]"><div className="absolute inset-0 pointer-events-auto" onMouseDown={(e) => { if(e.target === e.currentTarget) setSelectedId(null); }} onTouchStart={(e) => { if(e.target === e.currentTarget) setSelectedId(null); }} style={{ display: selectedId ? 'block' : 'none' }}/>{widgets.map(w => ( <div key={w.id} className="pointer-events-auto"><DraggableWidget widget={w} isSelected={selectedId === w.id} onSelect={() => setSelectedId(w.id)} onUpdate={(changes) => handleUpdate(w.id, changes)} onRemove={() => handleRemove(w.id)}/></div> ))}</div>);
 };
