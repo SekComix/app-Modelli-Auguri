@@ -7,7 +7,7 @@ import { CrosswordGrid, AddBlockControls, RenderBlocks } from './components/Edit
 import { Dashboard } from './components/Dashboard';
 import { VisualEffects } from './components/VisualEffects';
 import { RenderPoster } from './components/RenderPoster';
-import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Home, Download, Layout, Palette, Calendar } from 'lucide-react';
+import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Home, Download } from 'lucide-react';
 import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { THEMES, INITIAL_ARTICLES, INITIAL_DATA } from './data';
@@ -59,25 +59,6 @@ const App: React.FC = () => {
   const isPoster = data.formatType === FormatType.POSTER;
   const isCard = data.formatType === FormatType.CARD_FOLDABLE;
 
-  // --- LOGICHE ---
-  const handleFormatChange = (e: React.ChangeEvent<HTMLSelectElement>) => { setData(prev => ({ ...prev, formatType: e.target.value as FormatType })); };
-  const updateTheme = (tid: ThemeId) => setData(p => ({...p, themeId: tid}));
-  
-  // QUANDO CAMBIO EVENTO, SUGGERISCO IL TEMA MA NON BLOCCO L'UTENTE
-  const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => { 
-      const et = e.target.value as EventType; 
-      let tid: ThemeId = data.themeId; // Mantengo il tema attuale di base
-      
-      // Suggerimento automatico (Opzionale: se vuoi che cambi anche la grafica, scommenta sotto)
-      if(et===EventType.CHRISTMAS) tid='christmas'; 
-      if(et===EventType.HALLOWEEN) tid='halloween'; 
-      if(et===EventType.BIRTHDAY) tid='birthday'; 
-      if(et===EventType.WEDDING) tid='wedding'; 
-      
-      setShowConfigPanel(true); 
-      setData(p => ({...p, eventType: et, themeId: tid})); 
-  };
-
   const saveProjectToLibrary = () => {
       const defaultName = data.projectLabel || data.publicationName || "Nuovo Progetto";
       const name = prompt("Che nome vuoi dare a questo progetto?", defaultName);
@@ -102,6 +83,11 @@ const App: React.FC = () => {
   const handleConfirmReset = () => { setData(INITIAL_DATA); setAppConfig({ title: 'THE SEK CREATOR AND DESIGNER', logo: '' }); localStorage.removeItem('newspaper_data'); setShowWidgetLibrary(false); setShowResetDialog(false); setShowDashboard(true); setShowWelcomeScreen(false); };
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); reader.readAsDataURL(file); } };
   const openSaveDialog = () => { setBackupFilename(`giornale-${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`); setShowSaveDialog(true); }
+
+  const updateTheme = (themeId: ThemeId) => { let newEventType = data.eventType; if (themeId === 'birthday') newEventType = EventType.BIRTHDAY; if (themeId === 'christmas') newEventType = EventType.CHRISTMAS; if (themeId === 'easter') newEventType = EventType.EASTER; const newData = { ...data, themeId, eventType: newEventType }; setData(newData); };
+  const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => { const newType = e.target.value as EventType; let newTheme = data.themeId; if (newType === EventType.CHRISTMAS) newTheme = 'christmas'; if (newType === EventType.EASTER) newTheme = 'easter'; if (newType === EventType.BIRTHDAY) newTheme = 'birthday'; if (newType === EventType.HALLOWEEN) newTheme = 'halloween'; if (newType === EventType.WEDDING) newTheme = 'wedding'; if (newType === EventType.GRADUATION) newTheme = 'graduation'; if (newType === EventType.BAPTISM) newTheme = 'baptism'; if (newType === EventType.COMMUNION) newTheme = 'communion'; setShowConfigPanel(true); setData(prev => ({ ...prev, eventType: newType, themeId: newTheme })); };
+  
+  const handleFormatChange = (e: React.ChangeEvent<HTMLSelectElement>) => { setData(prev => ({ ...prev, formatType: e.target.value as FormatType })); };
 
   const updateArticle = (id: string, field: string, value: any) => setData(prev => ({ ...prev, articles: { ...prev.articles, [id]: { ...prev.articles[id], [field]: value } } }));
   const updateMeta = (field: keyof NewspaperData, value: string | number) => setData(prev => ({ ...prev, [field]: value }));
@@ -202,7 +188,7 @@ const App: React.FC = () => {
       <nav className="sticky top-0 z-[100] bg-white shadow-lg mb-8 print:hidden flex flex-col">
         <div className="max-w-[1600px] mx-auto w-full p-3 flex flex-wrap items-center justify-between gap-4">
             
-            {/* GRUPPO PROGETTO (Sinistra) */}
+            {/* PROGETTO */}
             <div className="flex items-center gap-3 mr-4">
                 <button onClick={() => setShowDashboard(true)} className="bg-stone-100 hover:bg-stone-200 p-2 rounded-lg text-stone-700 flex items-center gap-2 font-bold text-xs uppercase" title="Torna alla Home"><Home size={18}/> Home</button>
                 <label className="cursor-pointer group relative" title="Carica Logo">
@@ -213,17 +199,16 @@ const App: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-3 flex-nowrap overflow-x-auto pb-1 hide-scrollbar">
-                {/* GRUPPO SALVATAGGIO */}
                 <div className="flex items-center gap-1 p-2 pt-3 rounded-lg bg-stone-100 border border-stone-200 relative shrink-0 h-10 items-center">
-                    <div className="absolute -top-2 left-2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">Progetto</div>
+                    <div className="absolute -top-3 left-2 text-[9px] font-bold uppercase bg-white border border-stone-200 px-2 rounded shadow-sm text-blue-600 z-20 pointer-events-none">Progetto</div>
                     <button onClick={() => saveProjectToLibrary()} className="p-1 hover:bg-white rounded text-stone-600 hover:text-green-600 transition-colors" title="Salva in Dashboard"><Save size={18}/></button>
                     <button onClick={openSaveDialog} className="p-1 hover:bg-white rounded text-stone-600 hover:text-orange-600 transition-colors" title="Scarica Backup"><Download size={18}/></button>
                 </div>
 
-                {/* GRUPPO STILE (I 3 MENU RICHIESTI) */}
+                {/* STILE (3 MENU) */}
                 <div className="flex items-center gap-2 p-2 pt-3 rounded-lg bg-stone-100 border border-stone-200 relative shrink-0 h-10 items-center">
                     {/* 1. FORMATO */}
-                    <div className="absolute -top-2 left-2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">FORMATO</div>
+                    <div className="absolute -top-3 left-2 text-[9px] font-bold uppercase bg-white border border-stone-200 px-2 rounded shadow-sm text-stone-600 z-20 pointer-events-none">FORMATO</div>
                     <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-20" value={data.formatType} onChange={handleFormatChange}>
                         <option value={FormatType.NEWSPAPER}>Giornale</option>
                         <option value={FormatType.POSTER}>Poster</option>
@@ -233,7 +218,7 @@ const App: React.FC = () => {
                     <div className="w-px h-4 bg-stone-300"></div>
                     
                     {/* 2. GRAFICA */}
-                    <div className="absolute -top-2 left-[50%] transform -translate-x-1/2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">GRAFICA</div>
+                    <div className="absolute -top-3 left-[50%] transform -translate-x-1/2 text-[9px] font-bold uppercase bg-white border border-stone-200 px-2 rounded shadow-sm text-stone-600 z-20 pointer-events-none">GRAFICA</div>
                     <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.themeId} onChange={(e) => updateTheme(e.target.value as ThemeId)}>
                         {Object.values(THEMES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
                     </select>
@@ -241,7 +226,7 @@ const App: React.FC = () => {
                     <div className="w-px h-4 bg-stone-300"></div>
 
                     {/* 3. EVENTO */}
-                    <div className="absolute -top-2 right-2 text-[8px] font-bold uppercase bg-stone-200 px-1 rounded text-stone-500">EVENTO</div>
+                    <div className="absolute -top-3 right-2 text-[9px] font-bold uppercase bg-white border border-stone-200 px-2 rounded shadow-sm text-stone-600 z-20 pointer-events-none">EVENTO</div>
                     <select className="bg-transparent text-xs font-bold text-stone-700 outline-none cursor-pointer w-24" value={data.eventType} onChange={handleEventTypeChange}>
                         <option value={EventType.GENERIC}>Generico</option>
                         <option value={EventType.BIRTHDAY}>Compleanno</option>
@@ -251,18 +236,21 @@ const App: React.FC = () => {
                         <option value={EventType.CHRISTMAS}>Natale</option>
                         <option value={EventType.EASTER}>Pasqua</option>
                         <option value={EventType.HALLOWEEN}>Halloween</option>
+                        <option value={EventType.CRESIMA}>Cresima</option>
+                        <option value={EventType.BAPTISM}>Battesimo</option>
+                        <option value={EventType.COMMUNION}>Comunione</option>
                     </select>
                     
                     <button onClick={() => setShowConfigPanel(!showConfigPanel)} className="p-1 rounded hover:bg-purple-100 text-purple-600"><Settings size={16}/></button>
                 </div>
 
-                {/* GRUPPO STRUMENTI */}
+                {/* STRUMENTI */}
                 <div className="flex items-center gap-1 shrink-0 h-10 items-center">
                     <button onClick={() => setShowWidgetLibrary(!showWidgetLibrary)} className="p-2 rounded-full shadow-sm border bg-white hover:scale-105"><Megaphone size={20}/></button>
                     <button onClick={() => setIsVintageMode(!isVintageMode)} className={`p-2 rounded-full shadow-sm border ${isVintageMode ? 'bg-amber-800 text-white' : 'bg-white'}`}><Coffee size={20}/></button>
                 </div>
 
-                {/* GRUPPO EXPORT */}
+                {/* EXPORT */}
                 <div className="flex items-center gap-1 pl-2 border-l border-stone-200 shrink-0 h-10 items-center">
                     <button onClick={() => setIsPreviewMode(true)} className="bg-stone-800 text-white px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1"><Eye size={16}/> Anteprima</button>
                     <button onClick={() => setShowPrintDialog(true)} className="bg-green-600 text-white px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1"><Printer size={16}/> Stampa</button>
@@ -275,9 +263,21 @@ const App: React.FC = () => {
       {showConfigPanel && (<div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative"><div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} /></label></div>{data.eventType === EventType.WEDDING && (<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Partner<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} /></label></div>)}<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere<select className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1 w-24" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}><option value="M">Maschio</option><option value="F">Femmina</option></select></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data di Nascita/Evento<input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} /></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/></label></div><button onClick={handleApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">{isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica</button></div>)}
 
       <div className="max-w-[1600px] mx-auto shadow-2xl print:shadow-none transition-all duration-500 relative print-container">
-        {/* SWITCHER FORMATI (Poster e Biglietto ora funzionano) */}
-        {data.formatType === FormatType.NEWSPAPER && renderFrontPage('w-full')}
         
+        {/* --- SWITCHER FORMATI (Nuova Logica) --- */}
+        
+        {/* 1. GIORNALE */}
+        {data.formatType === FormatType.NEWSPAPER && (
+            <>
+             {/* Se è Poster nel menu ma selezionato Giornale nel formato, qui switcha. RenderFrontPage è il giornale */}
+             {renderFrontPage('w-full')}
+             
+             {/* Mostra Retro solo se non è digitale e non è poster */}
+             {!isDigital && !isPoster && !isCard && renderBackPage('w-full border-t border-stone-400 mt-8')}
+            </>
+        )}
+        
+        {/* 2. POSTER (RenderPoster) */}
         {data.formatType === FormatType.POSTER && (
             <RenderPoster 
                 data={data} 
@@ -291,26 +291,20 @@ const App: React.FC = () => {
             />
         )}
 
+        {/* 3. BIGLIETTO PIEGHEVOLE (Placeholder per ora) */}
         {data.formatType === FormatType.CARD_FOLDABLE && (
-            <div className="p-20 text-center bg-white border-4 border-dashed border-stone-300">
-                <h2 className="text-3xl font-bold text-stone-400 mb-4">💌 Layout Biglietto in arrivo domani!</h2>
-                <p className="text-stone-500">Seleziona "Poster" per un layout a pagina intera.</p>
+             <div className="p-20 text-center bg-white border-4 border-dashed border-stone-300">
+                <h2 className="text-3xl font-bold text-stone-400 mb-4">💌 Layout Biglietto in arrivo!</h2>
+                <p className="text-stone-500">Per ora seleziona "Poster" o "Giornale".</p>
             </div>
-        )}
-
-        {/* BACK PAGE (Solo per Giornale) */}
-        {data.formatType === FormatType.NEWSPAPER && !isPoster && !isCard && !isDigital && (
-            <>
-                {renderBackPage('w-full border-t border-stone-400 mt-8')}
-            </>
         )}
 
         <WidgetLayer widgets={data.widgets || []} setWidgets={setWidgets} selectedId={selectedWidgetId} setSelectedId={setSelectedWidgetId} />
       </div>
-      
+
       <WidgetLibrary isOpen={showWidgetLibrary} onClose={() => setShowWidgetLibrary(false)} onAddWidget={handleAddWidget} />
+      
       {showSaveDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowSaveDialog(false)}><div className="bg-white text-stone-900 p-6 rounded-xl shadow-2xl max-w-md w-full border-2 border-orange-500" onClick={e=>e.stopPropagation()}><h3 className="text-lg font-bold uppercase mb-4 flex items-center gap-2 text-orange-600"><Save size={20}/> Salva Backup</h3><label className="text-xs font-bold uppercase text-stone-500 mb-1 block">Nome File<input type="text" value={backupFilename} onChange={(e)=>setBackupFilename(e.target.value)} className="w-full bg-stone-50 border border-stone-300 p-3 rounded-lg mb-6 font-medium outline-none" autoFocus onKeyDown={(e)=>e.key==='Enter'&&handleConfirmSave()}/></label><div className="flex justify-end gap-3"><button onClick={()=>setShowSaveDialog(false)} className="px-4 py-2 text-stone-500 font-bold text-xs uppercase hover:bg-stone-100 rounded">Annulla</button><button onClick={handleConfirmSave} className="px-6 py-2 bg-orange-600 text-white font-bold text-xs uppercase rounded hover:bg-orange-700 shadow-lg">Scarica</button></div></div></div>}
-      {/* ... Altri dialoghi (Reset, Email, Help) ... */}
       {showResetDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowResetDialog(false)}><div className="bg-white text-stone-900 p-6 rounded-xl shadow-2xl max-w-md w-full border-2 border-red-500" onClick={e=>e.stopPropagation()}><h3 className="text-lg font-bold uppercase mb-4 flex items-center gap-2 text-red-600"><PlusCircle size={24}/> Nuovo Progetto?</h3><div className="flex justify-end gap-3"><button onClick={()=>setShowResetDialog(false)} className="px-4 py-2 text-stone-500 font-bold text-xs uppercase hover:bg-stone-100 rounded">Annulla</button><button onClick={handleConfirmReset} className="px-6 py-2 bg-red-600 text-white font-bold text-xs uppercase rounded hover:bg-red-700 shadow-lg">Conferma</button></div></div></div>}
       {showEmailDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowEmailDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-md w-full border-2 border-stone-800" onClick={e=>e.stopPropagation()}><div className="flex items-center justify-between mb-6 border-b pb-4"><h3 className="text-xl font-bold uppercase flex items-center gap-2"><Mail size={24}/> Email</h3><button onClick={()=>setShowEmailDialog(false)}><X size={24}/></button></div><div className="space-y-2"><button onClick={()=>{const s=encodeURIComponent(`Giornale: ${data.publicationName}`);const b=encodeURIComponent("Allega PDF");window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`,'_blank');setShowEmailDialog(false)}} className="w-full bg-red-600 hover:bg-red-700 text-white p-3 font-bold uppercase rounded mb-2 flex items-center justify-center gap-2 shadow-md">GMAIL</button><button onClick={()=>{window.location.href=`mailto:?subject=${encodeURIComponent(data.publicationName)}&body=${encodeURIComponent("Allega PDF")}`;setShowEmailDialog(false)}} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 font-bold uppercase rounded flex items-center justify-center gap-2 shadow-md">OUTLOOK</button></div></div></div>}
       {showHelpDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowHelpDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-lg w-full border-4 border-stone-800 relative" onClick={e=>e.stopPropagation()}><button onClick={()=>setShowHelpDialog(false)} className="absolute top-4 right-4 hover:bg-red-100 rounded-full p-1 text-red-500"><X size={24}/></button><h3 className="text-2xl font-black uppercase mb-6 flex items-center gap-2 border-b pb-4"><HelpCircle size={32}/> Guida</h3><div className="mt-8 text-center"><button onClick={()=>setShowHelpDialog(false)} className="bg-stone-900 text-white px-8 py-3 rounded-lg font-bold uppercase hover:scale-105 transition-transform">Ho Capito!</button></div></div></div>}
