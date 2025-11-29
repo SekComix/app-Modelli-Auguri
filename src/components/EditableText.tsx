@@ -27,14 +27,13 @@ const FONT_OPTIONS = [
 ];
 
 const SIZE_OPTIONS = [
-    { label: 'Default (Reset)', value: 0 },
-    { label: 'Molto Piccolo (-4)', value: -4 },
-    { label: 'Piccolo (-2)', value: -2 },
-    { label: 'Medio (+4)', value: 4 },
-    { label: 'Grande (+8)', value: 8 },
-    { label: 'Molto Grande (+16)', value: 16 },
-    { label: 'Titolo (+24)', value: 24 },
-    { label: 'Enorme (+40)', value: 40 }
+    { label: 'Default', value: 0 },
+    { label: 'Piccolo', value: -4 },
+    { label: 'Medio', value: 8 },
+    { label: 'Grande', value: 16 },
+    { label: 'Titolo', value: 24 },
+    { label: 'Gigante', value: 48 },
+    { label: 'Mega', value: 80 }
 ];
 
 export const EditableText: React.FC<EditableTextProps> = ({ 
@@ -63,6 +62,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       if (foundFont) setFontFamily(foundFont.value);
   }, [className]);
 
+  // Sincronizza input numerico quando cambia la dimensione
   useEffect(() => {
       if (isEditing) setTempFontSize(fontSizeMod.toString());
   }, [isEditing, fontSizeMod]);
@@ -82,6 +82,13 @@ export const EditableText: React.FC<EditableTextProps> = ({
       const val = parseInt(tempFontSize);
       if (!isNaN(val)) setFontSizeMod(val);
       else setTempFontSize(fontSizeMod.toString());
+  };
+
+  // NUOVA LOGICA PER I PULSANTI +/-
+  const adjustSize = (amount: number) => {
+      const newValue = fontSizeMod + amount;
+      setFontSizeMod(newValue);
+      setTempFontSize(newValue.toString());
   };
 
   useEffect(() => {
@@ -130,12 +137,33 @@ export const EditableText: React.FC<EditableTextProps> = ({
             <div className="w-px h-4 bg-stone-300"></div>
             <div className="flex items-center gap-2">
                 <div className="flex items-center bg-white rounded border border-stone-200 h-7">
-                    <button onClick={() => { const n = fontSizeMod - 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
-                    <select value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} onChange={(e) => { const val = Number(e.target.value); setFontSizeMod(val); setTempFontSize(val.toString()); }} className="w-16 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none bg-transparent cursor-pointer">
-                        <option value="" disabled>--</option>
-                        {SIZE_OPTIONS.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-                    </select>
-                    <button onClick={() => { const n = fontSizeMod + 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
+                    <button onClick={() => adjustSize(-2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
+                    
+                    {/* MENU TENDINA + INPUT COMBO */}
+                    <div className="relative w-16 h-full">
+                         <select 
+                            value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} 
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setFontSizeMod(val);
+                                setTempFontSize(val.toString());
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        >
+                            <option value="" disabled>--</option>
+                            {SIZE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                        <input 
+                            type="text" 
+                            value={tempFontSize} 
+                            onChange={(e) => setTempFontSize(e.target.value)}
+                            onBlur={commitFontSize}
+                            onKeyDown={(e) => e.key === 'Enter' && commitFontSize()}
+                            className="w-full text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none focus:bg-blue-50"
+                        />
+                    </div>
+
+                    <button onClick={() => adjustSize(2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
                 </div>
                 <label className="flex items-center justify-center bg-white w-7 h-7 rounded border border-stone-200 cursor-pointer hover:bg-stone-50" title="Scegli Colore"><div className="w-4 h-4 rounded-full border border-stone-300" style={{backgroundColor: textColor || '#000000'}}></div><input type="color" value={textColor || '#000000'} onChange={(e) => setTextColor(e.target.value)} className="opacity-0 absolute w-0 h-0"/></label>
             </div>
