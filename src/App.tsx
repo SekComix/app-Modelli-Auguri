@@ -7,7 +7,7 @@ import { CrosswordGrid, AddBlockControls, RenderBlocks } from './components/Edit
 import { Dashboard } from './components/Dashboard';
 import { VisualEffects } from './components/VisualEffects';
 import { RenderPoster } from './components/RenderPoster';
-import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Home, Download, Layout, Palette, Calendar } from 'lucide-react';
+import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Home, Download, Layout, Palette, Calendar, UserCog } from 'lucide-react';
 import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { THEMES, INITIAL_ARTICLES, INITIAL_DATA } from './data';
@@ -128,10 +128,9 @@ const App: React.FC = () => {
   const renderFrontPage = (wrapperClass: string) => (
     <div className={`${wrapperClass} ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative ${currentTheme.borderClass} ${!isDigital && !isPoster && !isPreviewMode ? 'border-r' : ''} print:w-full`} style={customPageStyle}>
       {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilter)" /></svg></div>)}
-      
-      {/* EFFETTI VISIVI ATTIVI */}
+      {/* EFFETTI VISIVI (NEVE/CORIANDOLI) */}
       <VisualEffects theme={currentTheme} />
-
+      
       <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50" title="Limite di stampa sicuro"></div>
       <header className={`${currentTheme.borderClass} border-b-4 pb-4 mb-6 text-center relative z-30`}>
          {isPoster && <div className="text-xs uppercase font-bold mb-2 tracking-widest text-stone-500">Edizione Speciale Poster</div>}
@@ -212,11 +211,12 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* STILE (3 MENU PULITI) */}
+                {/* STILE A 4 BLOCCHI (Formato | Grafica | Evento | Dati) */}
                 <div className="flex items-center gap-0 p-0 rounded-lg bg-stone-100 border border-stone-200 relative shrink-0 h-14 items-center overflow-hidden">
+                    
                     {/* 1. FORMATO */}
                     <div className="flex flex-col justify-center h-full px-3 border-r border-stone-200 hover:bg-white transition-colors rounded-l-md">
-                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">📐 Formato</span>
+                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5 flex items-center gap-1"><Layout size={10}/> FORMATO</span>
                         <select className="bg-transparent text-xs font-bold text-stone-800 outline-none cursor-pointer w-24 appearance-none" value={data.formatType} onChange={handleFormatChange}>
                             <option value={FormatType.NEWSPAPER}>Giornale</option>
                             <option value={FormatType.POSTER}>Poster</option>
@@ -226,30 +226,35 @@ const App: React.FC = () => {
                     
                     {/* 2. GRAFICA */}
                     <div className="flex flex-col justify-center h-full px-3 border-r border-stone-200 hover:bg-white transition-colors">
-                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">🎨 Grafica</span>
+                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5 flex items-center gap-1"><Palette size={10}/> GRAFICA</span>
                         <select className="bg-transparent text-xs font-bold text-stone-800 outline-none cursor-pointer w-24 appearance-none" value={data.themeId} onChange={(e) => updateTheme(e.target.value as ThemeId)}>
                             {Object.values(THEMES).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
                         </select>
                     </div>
 
                     {/* 3. EVENTO */}
-                    <div className="flex flex-col justify-center h-full px-3 hover:bg-white transition-colors rounded-r-md">
-                        <div className="flex items-center justify-between w-full">
-                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">📅 Evento</span>
-                            <button onClick={() => setShowConfigPanel(!showConfigPanel)} className="text-purple-600 hover:scale-110 transition-transform ml-2"><Settings size={12}/></button>
-                        </div>
+                    <div className="flex flex-col justify-center h-full px-3 border-r border-stone-200 hover:bg-white transition-colors">
+                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5 flex items-center gap-1"><Calendar size={10}/> EVENTO</span>
                         <select className="bg-transparent text-xs font-bold text-stone-800 outline-none cursor-pointer w-24 appearance-none" value={data.eventType} onChange={handleEventTypeChange}>
                             <option value={EventType.GENERIC}>Generico</option>
                             <option value={EventType.BIRTHDAY}>Compleanno</option>
                             <option value={EventType.WEDDING}>Matrimonio</option>
                             <option value={EventType.GRADUATION}>Laurea</option>
                             <option value={EventType.CHRISTMAS}>Natale</option>
-                            <option value={EventType.EASTER}>Pasqua</option>
                             <option value={EventType.HALLOWEEN}>Halloween</option>
                             <option value={EventType.CRESIMA}>Cresima</option>
                             <option value={EventType.BAPTISM}>Battesimo</option>
                             <option value={EventType.COMMUNION}>Comunione</option>
                         </select>
+                    </div>
+
+                    {/* 4. DATI (Configurazione) */}
+                    <div className="flex flex-col justify-center h-full px-3 hover:bg-white transition-colors rounded-r-md cursor-pointer" onClick={() => setShowConfigPanel(!showConfigPanel)}>
+                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider mb-0.5 flex items-center gap-1"><UserCog size={10}/> DATI</span>
+                        <div className="flex items-center gap-1">
+                             <span className="text-xs font-bold text-purple-700">Modifica</span>
+                             <Settings size={12} className="text-purple-600"/>
+                        </div>
                     </div>
                 </div>
 
@@ -261,15 +266,15 @@ const App: React.FC = () => {
 
                 {/* EXPORT */}
                 <div className="flex items-center gap-1 pl-2 border-l border-stone-200 shrink-0 h-14 px-2 items-center">
-                    <button onClick={() => setIsPreviewMode(true)} className="bg-stone-800 hover:bg-black text-white px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 shadow-md transition-transform hover:scale-105"><Eye size={16}/> Anteprima</button>
-                    <button onClick={() => setShowPrintDialog(true)} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 shadow-md transition-transform hover:scale-105"><Printer size={16}/> Stampa</button>
+                    <button onClick={() => setIsPreviewMode(true)} className="bg-stone-800 text-white px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 shadow-md transition-transform hover:scale-105"><Eye size={16}/> Anteprima</button>
+                    <button onClick={() => setShowPrintDialog(true)} className="bg-green-600 text-white px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 shadow-md transition-transform hover:scale-105"><Printer size={16}/> Stampa</button>
                 </div>
             </div>
         </div>
         <div id="text-toolbar-portal" className="w-full bg-stone-50 border-t border-stone-200 empty:hidden transition-all duration-300"></div>
       </nav>
-      
-      {showConfigPanel && (<div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative"><div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} /></label></div>{data.eventType === EventType.WEDDING && (<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Partner<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} /></label></div>)}<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere<select className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1 w-24" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}><option value="M">Maschio</option><option value="F">Femmina</option></select></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data di Nascita/Evento<input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} /></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/></label></div><button onClick={handleApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">{isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica</button></div>)}
+
+      {showConfigPanel && (<div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative"><div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} /></label></div>{data.eventType === EventType.WEDDING && (<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Partner<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} /></label></div>)}<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere<select className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1 w-24" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}><option value="M">Maschio</option><option value="F">Femmina</option></select></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data di Nascita/Evento<input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} /></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/></label></div><button onClick={handleApplyApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">{isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica</button></div>)}
 
       <div className="max-w-[1600px] mx-auto shadow-2xl print:shadow-none transition-all duration-500 relative print-container">
         {/* SWITCHER FORMATI */}
