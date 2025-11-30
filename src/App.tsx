@@ -82,15 +82,8 @@ const App: React.FC = () => {
   const handleConfirmSave = () => { const finalName = backupFilename.endsWith('.json') ? backupFilename : `${backupFilename}.json`; const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = finalName; document.body.appendChild(link); link.click(); document.body.removeChild(link); setShowSaveDialog(false); };
   const handleConfirmReset = () => { setData(INITIAL_DATA); setAppConfig({ title: 'THE SEK CREATOR AND DESIGNER', logo: '' }); localStorage.removeItem('newspaper_data'); setShowWidgetLibrary(false); setShowResetDialog(false); setShowDashboard(true); setShowWelcomeScreen(false); };
   
-  // LOGICA CARICAMENTO LOGO UTENTE
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { 
-      const file = e.target.files?.[0]; 
-      if (file) { 
-          const reader = new FileReader(); 
-          reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); 
-          reader.readAsDataURL(file); 
-      } 
-  };
+  // LOGO UPLOAD
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); reader.readAsDataURL(file); } };
   
   const openSaveDialog = () => { setBackupFilename(`giornale-${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`); setShowSaveDialog(true); }
 
@@ -139,6 +132,7 @@ const App: React.FC = () => {
     <div className={`${wrapperClass} ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative ${currentTheme.borderClass} ${!isDigital && !isPoster && !isPreviewMode ? 'border-r' : ''} print:w-full`} style={customPageStyle}>
       {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilter)" /></svg></div>)}
       <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50" title="Limite di stampa sicuro"></div>
+      <VisualEffects theme={currentTheme} />
       <header className={`${currentTheme.borderClass} border-b-4 pb-4 mb-6 text-center relative z-30`}>
          {isPoster && <div className="text-xs uppercase font-bold mb-2 tracking-widest text-stone-500">Edizione Speciale Poster</div>}
          <EditableText value={data.publicationName} onChange={(v) => updateMeta('publicationName', v)} className={`${currentTheme.titleFont} ${isPoster ? 'text-8xl lg:text-9xl' : 'text-6xl lg:text-8xl'} leading-tight ${currentTheme.textClass} overflow-visible`} language={currentTheme.language} aiEnabled={!isPreviewMode} aiContext="Nome della testata" mode="headline"/>
@@ -196,18 +190,14 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-stone-800 p-4 lg:p-8 font-sans text-stone-900">
       <nav className="sticky top-0 z-[100] bg-white shadow-lg mb-8 print:hidden flex flex-col">
         <div className="max-w-[1600px] mx-auto w-full p-3 flex flex-wrap items-center justify-between gap-4">
-            
-            {/* SINISTRA: LOGO UPLOADABILE */}
+            {/* SINISTRA: HOME + LOGO FULL SIZE */}
             <div className="flex items-center gap-3 mr-4">
                 <button onClick={() => setShowDashboard(true)} className="bg-stone-100 hover:bg-stone-200 p-2 rounded-lg text-stone-700 flex items-center gap-2 font-bold text-xs uppercase" title="Torna alla Home"><Home size={18}/> Home</button>
                 
-                {/* NUOVO BOX LOGO: Occupa spazio ma senza scritte fisse */}
-                <label className="cursor-pointer group relative h-14 flex items-center justify-center px-2" title="Clicca per caricare il tuo Logo Completo (PNG)">
+                <label className="cursor-pointer group relative h-20 flex items-center justify-center px-2" title="Clicca per caricare il tuo Logo Completo (PNG)">
                     {appConfig.logo ? (
-                        // Se c'è il logo, mostralo grande (max 250px) mantenendo proporzioni
-                        <img src={appConfig.logo} alt="Logo" className="h-full w-auto object-contain max-w-[250px]" />
+                        <img src={appConfig.logo} alt="Logo" className="h-full w-auto object-contain max-w-[400px]" />
                     ) : (
-                        // Se non c'è, mostra solo l'icona upload elegante
                         <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity border-2 border-dashed border-stone-300 rounded-lg px-4 py-2">
                             <Upload size={20}/>
                             <span className="text-[10px] font-bold uppercase leading-tight">Carica<br/>Tuo Logo</span>
@@ -229,7 +219,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* MENU 4 PILASTRI (CON ETICHETTE DENTRO) */}
+                {/* MENU 4 PILASTRI */}
                 <div className="flex items-center gap-0 p-0 rounded-lg bg-stone-100 border border-stone-200 relative shrink-0 h-14 items-center overflow-hidden">
                     {/* 1. FORMATO */}
                     <div className="flex flex-col justify-center h-full px-3 border-r border-stone-200 hover:bg-white transition-colors rounded-l-md">
@@ -328,7 +318,6 @@ const App: React.FC = () => {
 
       <WidgetLibrary isOpen={showWidgetLibrary} onClose={() => setShowWidgetLibrary(false)} onAddWidget={handleAddWidget} />
       {showSaveDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowSaveDialog(false)}><div className="bg-white text-stone-900 p-6 rounded-xl shadow-2xl max-w-md w-full border-2 border-orange-500" onClick={e=>e.stopPropagation()}><h3 className="text-lg font-bold uppercase mb-4 flex items-center gap-2 text-orange-600"><Save size={20}/> Salva Backup</h3><label className="text-xs font-bold uppercase text-stone-500 mb-1 block">Nome File<input type="text" value={backupFilename} onChange={(e)=>setBackupFilename(e.target.value)} className="w-full bg-stone-50 border border-stone-300 p-3 rounded-lg mb-6 font-medium outline-none" autoFocus onKeyDown={(e)=>e.key==='Enter'&&handleConfirmSave()}/></label><div className="flex justify-end gap-3"><button onClick={()=>setShowSaveDialog(false)} className="px-4 py-2 text-stone-500 font-bold text-xs uppercase hover:bg-stone-100 rounded">Annulla</button><button onClick={handleConfirmSave} className="px-6 py-2 bg-orange-600 text-white font-bold text-xs uppercase rounded hover:bg-orange-700 shadow-lg">Scarica</button></div></div></div>}
-      {/* ... Altri dialoghi (Reset, Email, Help) ... */}
       {showResetDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowResetDialog(false)}><div className="bg-white text-stone-900 p-6 rounded-xl shadow-2xl max-w-md w-full border-2 border-red-500" onClick={e=>e.stopPropagation()}><h3 className="text-lg font-bold uppercase mb-4 flex items-center gap-2 text-red-600"><PlusCircle size={24}/> Nuovo Progetto?</h3><div className="flex justify-end gap-3"><button onClick={()=>setShowResetDialog(false)} className="px-4 py-2 text-stone-500 font-bold text-xs uppercase hover:bg-stone-100 rounded">Annulla</button><button onClick={handleConfirmReset} className="px-6 py-2 bg-red-600 text-white font-bold text-xs uppercase rounded hover:bg-red-700 shadow-lg">Conferma</button></div></div></div>}
       {showEmailDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowEmailDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-md w-full border-2 border-stone-800" onClick={e=>e.stopPropagation()}><div className="flex items-center justify-between mb-6 border-b pb-4"><h3 className="text-xl font-bold uppercase flex items-center gap-2"><Mail size={24}/> Email</h3><button onClick={()=>setShowEmailDialog(false)}><X size={24}/></button></div><div className="space-y-2"><button onClick={()=>{const s=encodeURIComponent(`Giornale: ${data.publicationName}`);const b=encodeURIComponent("Allega PDF");window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`,'_blank');setShowEmailDialog(false)}} className="w-full bg-red-600 hover:bg-red-700 text-white p-3 font-bold uppercase rounded mb-2 flex items-center justify-center gap-2 shadow-md">GMAIL</button><button onClick={()=>{window.location.href=`mailto:?subject=${encodeURIComponent(data.publicationName)}&body=${encodeURIComponent("Allega PDF")}`;setShowEmailDialog(false)}} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 font-bold uppercase rounded flex items-center justify-center gap-2 shadow-md">OUTLOOK</button></div></div></div>}
       {showHelpDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowHelpDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-lg w-full border-4 border-stone-800 relative" onClick={e=>e.stopPropagation()}><button onClick={()=>setShowHelpDialog(false)} className="absolute top-4 right-4 hover:bg-red-100 rounded-full p-1 text-red-500"><X size={24}/></button><h3 className="text-2xl font-black uppercase mb-6 flex items-center gap-2 border-b pb-4"><HelpCircle size={32}/> Guida</h3><div className="mt-8 text-center"><button onClick={()=>setShowHelpDialog(false)} className="bg-stone-900 text-white px-8 py-3 rounded-lg font-bold uppercase hover:scale-105 transition-transform">Ho Capito!</button></div></div></div>}
