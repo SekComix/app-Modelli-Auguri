@@ -82,8 +82,15 @@ const App: React.FC = () => {
   const handleConfirmSave = () => { const finalName = backupFilename.endsWith('.json') ? backupFilename : `${backupFilename}.json`; const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = finalName; document.body.appendChild(link); link.click(); document.body.removeChild(link); setShowSaveDialog(false); };
   const handleConfirmReset = () => { setData(INITIAL_DATA); setAppConfig({ title: 'THE SEK CREATOR AND DESIGNER', logo: '' }); localStorage.removeItem('newspaper_data'); setShowWidgetLibrary(false); setShowResetDialog(false); setShowDashboard(true); setShowWelcomeScreen(false); };
   
-  // LOGO UPLOAD
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); reader.readAsDataURL(file); } };
+  // LOGO UPLOAD CON SIZE AUMENTATO
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { 
+      const file = e.target.files?.[0]; 
+      if (file) { 
+          const reader = new FileReader(); 
+          reader.onloadend = () => setAppConfig(prev => ({ ...prev, logo: reader.result as string })); 
+          reader.readAsDataURL(file); 
+      } 
+  };
   
   const openSaveDialog = () => { setBackupFilename(`giornale-${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`); setShowSaveDialog(true); }
 
@@ -190,13 +197,14 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-stone-800 p-4 lg:p-8 font-sans text-stone-900">
       <nav className="sticky top-0 z-[100] bg-white shadow-lg mb-8 print:hidden flex flex-col">
         <div className="max-w-[1600px] mx-auto w-full p-3 flex flex-wrap items-center justify-between gap-4">
-            {/* SINISTRA: HOME + LOGO FULL SIZE */}
+            {/* SINISTRA: LOGO UPLOADABILE GRANDE */}
             <div className="flex items-center gap-3 mr-4">
                 <button onClick={() => setShowDashboard(true)} className="bg-stone-100 hover:bg-stone-200 p-2 rounded-lg text-stone-700 flex items-center gap-2 font-bold text-xs uppercase" title="Torna alla Home"><Home size={18}/> Home</button>
                 
-                <label className="cursor-pointer group relative h-20 flex items-center justify-center px-2" title="Clicca per caricare il tuo Logo Completo (PNG)">
+                {/* MODIFICA QUI: h-28 e max-w-[600px] per accogliere il logo largo */}
+                <label className="cursor-pointer group relative h-28 flex items-center justify-center px-2" title="Clicca per caricare il tuo Logo Completo (PNG)">
                     {appConfig.logo ? (
-                        <img src={appConfig.logo} alt="Logo" className="h-full w-auto object-contain max-w-[400px]" />
+                        <img src={appConfig.logo} alt="Logo" className="h-full w-auto object-contain max-w-[600px]" />
                     ) : (
                         <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity border-2 border-dashed border-stone-300 rounded-lg px-4 py-2">
                             <Upload size={20}/>
@@ -219,7 +227,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* MENU 4 PILASTRI */}
+                {/* MENU 4 PILASTRI (CON ETICHETTE DENTRO) */}
                 <div className="flex items-center gap-0 p-0 rounded-lg bg-stone-100 border border-stone-200 relative shrink-0 h-14 items-center overflow-hidden">
                     {/* 1. FORMATO */}
                     <div className="flex flex-col justify-center h-full px-3 border-r border-stone-200 hover:bg-white transition-colors rounded-l-md">
@@ -280,26 +288,14 @@ const App: React.FC = () => {
         </div>
         <div id="text-toolbar-portal" className="w-full bg-stone-50 border-t border-stone-200 empty:hidden transition-all duration-300"></div>
       </nav>
-      
+
       {showConfigPanel && (<div className="max-w-[1600px] mx-auto mb-8 bg-white border-l-4 border-purple-500 rounded-r-xl p-6 shadow-lg print:hidden flex flex-wrap items-end gap-6 animate-fade-in-up z-50 relative"><div className="flex items-center gap-2 text-purple-800 font-bold text-xl w-full border-b pb-2 mb-2"><Settings/> Configurazione {data.eventType}</div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Protagonista<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName1} onChange={(e) => updateEventConfig('heroName1', e.target.value)} /></label></div>{data.eventType === EventType.WEDDING && (<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Nome Partner<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.heroName2 || ''} onChange={(e) => updateEventConfig('heroName2', e.target.value)} /></label></div>)}<div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Genere<select className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1 w-24" value={data.eventConfig.gender} onChange={(e) => updateEventConfig('gender', e.target.value)}><option value="M">Maschio</option><option value="F">Femmina</option></select></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Data di Nascita/Evento<input type="date" className="border rounded px-3 py-2 text-sm bg-stone-50 block mt-1" value={data.eventConfig.date} onChange={(e) => updateEventConfig('date', e.target.value)} /></label></div><div className="flex flex-col"><label className="text-[10px] font-bold uppercase text-stone-500 mb-1">Auguri Da<input type="text" className="border rounded px-3 py-2 text-sm bg-stone-50 w-40 block mt-1" value={data.eventConfig.wishesFrom || ''} onChange={(e) => updateEventConfig('wishesFrom', e.target.value)} placeholder="Es. Mamma e Papà"/></label></div><button onClick={handleApplyEventConfig} disabled={isUpdatingEvent} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg ml-auto transition-transform active:scale-95">{isUpdatingEvent ? <Loader2 size={18} className="animate-spin"/> : <Check size={18} />} Applica</button></div>)}
 
       <div className="max-w-[1600px] mx-auto shadow-2xl print:shadow-none transition-all duration-500 relative print-container">
         {/* SWITCHER FORMATI */}
         {data.formatType === FormatType.NEWSPAPER && renderFrontPage('w-full')}
+        {data.formatType === FormatType.POSTER && <RenderPoster data={data} theme={currentTheme} updateMeta={updateMeta} updateArticle={updateArticle} addBlock={(t) => addBlock('front', t)} updateBlock={(id, v, h) => updateBlock('front', id, v, h)} removeBlock={(id) => removeBlock('front', id)} isPreview={isPreviewMode} />}
         
-        {data.formatType === FormatType.POSTER && (
-            <RenderPoster 
-                data={data} 
-                theme={currentTheme} 
-                updateMeta={updateMeta} 
-                updateArticle={updateArticle} 
-                addBlock={(t) => addBlock('front', t)} 
-                updateBlock={(id, v, h) => updateBlock('front', id, v, h)} 
-                removeBlock={(id) => removeBlock('front', id)} 
-                isPreview={isPreviewMode} 
-            />
-        )}
-
         {data.formatType === FormatType.CARD_FOLDABLE && (
             <div className="p-20 text-center bg-white border-4 border-dashed border-stone-300">
                 <h2 className="text-3xl font-bold text-stone-400 mb-4">💌 Layout Biglietto in arrivo!</h2>
