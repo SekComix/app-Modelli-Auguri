@@ -26,6 +26,7 @@ const FONT_OPTIONS = [
     { label: 'A Mano', value: 'font-handwriting' }
 ];
 
+// OPZIONI DIMENSIONE
 const SIZE_OPTIONS = [
     { label: 'Default', value: 0 },
     { label: 'Piccolo (-4)', value: -4 },
@@ -77,7 +78,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const handleQuickAi = async (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!value) return;
-      const res = await generateArticleContent("Migliora questo testo rendendolo più professionale e accattivante.", value);
+      const res = await generateArticleContent("Migliora questo testo rendendolo più professionale.", value);
       if (res) onChange(res);
   };
 
@@ -102,6 +103,8 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   const cleanBaseClass = className.replace(/font-\w+/g, '').replace(/text-\w+-\d+/g, '').replace(/text-(left|center|right|justify)/g, '');
   const dynamicClassName = `${isBold ? 'font-bold' : ''} ${isItalic ? 'italic' : ''} ${isUnderline ? 'underline' : ''} text-${textAlign} ${fontFamily} ${cleanBaseClass}`.trim();
+  
+  // DEFINIZIONE UNICA DELLO STILE
   const dynamicStyle = { color: textColor || undefined, fontSize: fontSizeMod !== 0 ? `calc(100% + ${fontSizeMod * 2}px)` : undefined };
 
   const Toolbar = () => {
@@ -134,10 +137,31 @@ export const EditableText: React.FC<EditableTextProps> = ({
             <div className="flex items-center gap-2">
                 <div className="flex items-center bg-white rounded border border-stone-200 h-7">
                     <button onClick={() => { const n = fontSizeMod - 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
-                    <select value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} onChange={(e) => { const val = Number(e.target.value); setFontSizeMod(val); setTempFontSize(val.toString()); }} className="w-16 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none bg-transparent cursor-pointer">
-                        <option value="" disabled>--</option>
-                        {SIZE_OPTIONS.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-                    </select>
+                    
+                    {/* TENDINA DIMENSIONI + INPUT */}
+                    <div className="relative w-16 h-full">
+                         <select 
+                            value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} 
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setFontSizeMod(val);
+                                setTempFontSize(val.toString());
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        >
+                            <option value="" disabled>--</option>
+                            {SIZE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                        <input 
+                            type="text" 
+                            value={tempFontSize} 
+                            onChange={(e) => setTempFontSize(e.target.value)}
+                            onBlur={commitFontSize}
+                            onKeyDown={(e) => e.key === 'Enter' && commitFontSize()}
+                            className="w-full text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none focus:bg-blue-50"
+                        />
+                    </div>
+
                     <button onClick={() => { const n = fontSizeMod + 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
                 </div>
                 <label className="flex items-center justify-center bg-white w-7 h-7 rounded border border-stone-200 cursor-pointer hover:bg-stone-50" title="Scegli Colore"><div className="w-4 h-4 rounded-full border border-stone-300" style={{backgroundColor: textColor || '#000000'}}></div><input type="color" value={textColor || '#000000'} onChange={(e) => setTextColor(e.target.value)} className="opacity-0 absolute w-0 h-0"/></label>
@@ -153,25 +177,11 @@ export const EditableText: React.FC<EditableTextProps> = ({
         <div ref={containerRef} className="relative group z-[50]" onClick={e => e.stopPropagation()}>
            <Toolbar />
            {multiline ? (
-               <textarea 
-                    ref={inputRef as React.RefObject<HTMLTextAreaElement>} 
-                    className={`w-full bg-yellow-50/20 border-2 border-blue-400 p-1 outline-none resize-y min-h-[100px] ${dynamicClassName}`} 
-                    style={sizeStyle} 
-                    value={value} 
-                    onChange={(e) => onChange(e.target.value)}
-                    onMouseDown={(e) => e.stopPropagation()} // <--- FIX: BLOCCA IL DRAG MENTRE SELEZIONI
-                    onClick={(e) => e.stopPropagation()}
-               />
+               // USA dynamicStyle, NON sizeStyle
+               <textarea ref={inputRef as React.RefObject<HTMLTextAreaElement>} className={`w-full bg-yellow-50/20 border-2 border-blue-400 p-1 outline-none resize-y min-h-[100px] ${dynamicClassName}`} style={dynamicStyle} value={value} onChange={(e) => onChange(e.target.value)} onMouseDown={(e)=>e.stopPropagation()}/>
            ) : (
-               <input 
-                    ref={inputRef as React.RefObject<HTMLInputElement>} 
-                    className={`w-full bg-yellow-50/20 border-2 border-blue-400 p-1 outline-none ${dynamicClassName}`} 
-                    style={sizeStyle} 
-                    value={value} 
-                    onChange={(e) => onChange(e.target.value)}
-                    onMouseDown={(e) => e.stopPropagation()} // <--- FIX: BLOCCA IL DRAG
-                    onClick={(e) => e.stopPropagation()}
-               />
+               // USA dynamicStyle, NON sizeStyle
+               <input ref={inputRef as React.RefObject<HTMLInputElement>} className={`w-full bg-yellow-50/20 border-2 border-blue-400 p-1 outline-none ${dynamicClassName}`} style={dynamicStyle} value={value} onChange={(e) => onChange(e.target.value)} onMouseDown={(e)=>e.stopPropagation()}/>
            )}
         </div>
       )
