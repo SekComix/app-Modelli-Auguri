@@ -1,9 +1,8 @@
-// --- MAGAZZINO RISORSE GRAFICHE ---
+// --- MAGAZZINO RISORSE GRAFICHE (EXPANDED EDITION) ---
 
 export const DEFAULT_ASSETS = {
-    // 1. PERSONAGGI
+    // 1. PERSONAGGI (Mascotte)
     mascots: [
-        // ZEBRA JUVENTUS (Icona corretta)
         { id: 'zebra_juve', label: 'Zebretta', src: 'https://cdn-icons-png.flaticon.com/512/616/616507.png' },
         { id: 'strillone', label: 'Strillone', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995655.png' },
         { id: 'gentleman', label: 'Gentiluomo', src: 'https://cdn-icons-png.flaticon.com/512/1995/1995515.png' },
@@ -22,32 +21,55 @@ export const DEFAULT_ASSETS = {
         { id: 'dog', label: 'Cane', src: 'https://cdn-icons-png.flaticon.com/512/616/616554.png' }
     ],
 
-    // 2. EMOZIONI & SIMBOLI
+    // 2. EMOZIONI & SIMBOLI (Mega Pack)
     emotions: [
+        // EVENTI
         { id: 'grad_cap', label: 'Tocco', content: '🎓' },
         { id: 'scroll', label: 'Pergamena', content: '📜' },
         { id: 'rings', label: 'Fedi', content: '💍' },
         { id: 'dove', label: 'Colomba', content: '🕊️' },
         { id: 'cross', label: 'Fede', content: '✝️' },
         { id: 'xmas_tree', label: 'Albero', content: '🎄' },
+        { id: 'santa_face', label: 'Babbo', content: '🎅' },
+        { id: 'gift', label: 'Regalo', content: '🎁' },
         { id: 'pumpkin', label: 'Zucca', content: '🎃' },
         { id: 'ghost', label: 'Fantasma', content: '👻' },
-        { id: 'baby_pacifier', label: 'Ciuccio', content: '👶' },
+        { id: 'baby', label: 'Ciuccio', content: '👶' },
         { id: 'stork', label: 'Cicogna', content: '🦢' },
+        { id: 'cake', label: 'Torta', content: '🎂' },
+        { id: 'cheers', label: 'Cin Cin', content: '🥂' },
+        
+        // SENTIMENTI & ESPRESSIONI
         { id: 'heart_red', label: 'Cuore', content: '❤️' },
         { id: 'heart_sparkle', label: 'Love', content: '💖' },
         { id: 'star', label: 'Stella', content: '⭐' },
         { id: 'sparkles', label: 'Magia', content: '✨' },
         { id: 'fire', label: 'Fuoco', content: '🔥' },
         { id: 'laugh', label: 'Risata', content: '😂' },
-        { id: 'love_face', label: 'Innamorato', content: '🥰' },
+        { id: 'love_face', label: 'Amore', content: '🥰' },
         { id: 'party_face', label: 'Festa', content: '🥳' },
         { id: 'cool', label: 'Cool', content: '😎' },
-        { id: 'cry', label: 'Commosso', content: '🥹' },
-        { id: 'shock', label: 'Shock', content: '😱' },
+        { id: 'cry_joy', label: 'Gioia', content: '🥹' },
+        { id: 'wink', label: 'Occhiolino', content: '😉' },
         { id: 'thinking', label: 'Dubbio', content: '🤔' },
         { id: 'clap', label: 'Bravo', content: '👏' },
-        { id: 'cheers', label: 'Cin Cin', content: '🥂' }
+        { id: 'muscle', label: 'Forza', content: '💪' },
+        { id: 'pray', label: 'Preghiera', content: '🙏' },
+        { id: 'rose', label: 'Rosa', content: '🌹' },
+        { id: 'sun', label: 'Sole', content: '☀️' },
+        { id: 'moon', label: 'Luna', content: '🌙' },
+        { id: 'rainbow', label: 'Arcobaleno', content: '🌈' },
+        
+        // SIMBOLI UTILI
+        { id: 'check', label: 'Ok', content: '✅' },
+        { id: 'warning', label: 'Attenzione', content: '⚠️' },
+        { id: 'pin', label: 'Puntina', content: '📍' },
+        { id: 'camera', label: 'Foto', content: '📸' },
+        { id: 'music', label: 'Musica', content: '🎵' },
+        { id: 'pencil', label: 'Matita', content: '✏️' },
+        { id: 'tools', label: 'Attrezzi', content: '🛠️' },
+        { id: 'idea', label: 'Idea', content: '💡' },
+        { id: 'money', label: 'Soldi', content: '💰' }
     ],
 
     // 3. FUMETTI
@@ -62,16 +84,11 @@ export const DEFAULT_ASSETS = {
         { id: 'arrow_right', label: 'Freccia DX', svg: `<svg viewBox="0 0 200 100"><path d="M20,40 L140,40 L140,20 L190,50 L140,80 L140,60 L20,60 Z" fill="black"/></svg>` }
     ],
 
-    // 4. OGGETTI
+    // 4. OGGETTI (Immagini)
     stickers: [
         { id: 'cake', label: 'Torta', content: '🎂' },
         { id: 'champagne', label: 'Spumante', content: '🍾' },
-        { id: 'balloon', label: 'Palloncino', content: '🎈' },
-        { id: 'party_popper', label: 'Coriandoli', content: '🎉' },
-        { id: 'gift', label: 'Regalo', content: '🎁' },
-        { id: 'candle', label: 'Candela', content: '🕯️' },
         { id: 'wreath', label: 'Alloro', content: '🌿' },
-        { id: 'rose', label: 'Rosa', content: '🌹' },
         { id: 'camera', label: 'Camera', content: '📷' },
         { id: 'film', label: 'Pellicola', content: '🎞️' },
         { id: 'medal', label: 'Medaglia', content: '🥇' },
