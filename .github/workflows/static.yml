@@ -30,12 +30,14 @@ jobs:
           node-version: 20
           cache: 'npm'
       
-      # FIX: Usa 'npm install' invece di 'npm ci' per evitare errori di lockfile desincronizzato
       - name: Install dependencies
         run: npm install
 
       - name: Build
+        # QUI È LA MAGIA: Passiamo la chiave segreta al comando di build
         run: npm run build
+        env:
+          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
