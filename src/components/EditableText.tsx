@@ -28,12 +28,11 @@ const FONT_OPTIONS = [
 
 const SIZE_OPTIONS = [
     { label: 'Default', value: 0 },
-    { label: 'Piccolo', value: -4 },
-    { label: 'Medio', value: 8 },
-    { label: 'Grande', value: 16 },
-    { label: 'Titolo', value: 24 },
-    { label: 'Gigante', value: 48 },
-    { label: 'Mega', value: 80 }
+    { label: 'Piccolo (-4)', value: -4 },
+    { label: 'Medio (+8)', value: 8 },
+    { label: 'Grande (+16)', value: 16 },
+    { label: 'Titolo (+24)', value: 24 },
+    { label: 'Gigante (+48)', value: 48 }
 ];
 
 export const EditableText: React.FC<EditableTextProps> = ({ 
@@ -62,10 +61,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       if (foundFont) setFontFamily(foundFont.value);
   }, [className]);
 
-  // Sincronizza input numerico quando cambia la dimensione
-  useEffect(() => {
-      if (isEditing) setTempFontSize(fontSizeMod.toString());
-  }, [isEditing, fontSizeMod]);
+  useEffect(() => { if (isEditing) setTempFontSize(fontSizeMod.toString()); }, [isEditing, fontSizeMod]);
 
   const handleSpeak = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -78,17 +74,18 @@ export const EditableText: React.FC<EditableTextProps> = ({
       setIsSpeaking(true);
   };
 
+  // FAST AI REWRITE (La Matitina Magica)
+  const handleQuickAi = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!value) return;
+      const res = await generateArticleContent("Riscrivi questo testo rendendolo più accattivante e professionale.", value);
+      if (res) onChange(res);
+  };
+
   const commitFontSize = () => {
       const val = parseInt(tempFontSize);
       if (!isNaN(val)) setFontSizeMod(val);
       else setTempFontSize(fontSizeMod.toString());
-  };
-
-  // NUOVA LOGICA PER I PULSANTI +/-
-  const adjustSize = (amount: number) => {
-      const newValue = fontSizeMod + amount;
-      setFontSizeMod(newValue);
-      setTempFontSize(newValue.toString());
   };
 
   useEffect(() => {
@@ -137,33 +134,12 @@ export const EditableText: React.FC<EditableTextProps> = ({
             <div className="w-px h-4 bg-stone-300"></div>
             <div className="flex items-center gap-2">
                 <div className="flex items-center bg-white rounded border border-stone-200 h-7">
-                    <button onClick={() => adjustSize(-2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
-                    
-                    {/* MENU TENDINA + INPUT COMBO */}
-                    <div className="relative w-16 h-full">
-                         <select 
-                            value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} 
-                            onChange={(e) => {
-                                const val = Number(e.target.value);
-                                setFontSizeMod(val);
-                                setTempFontSize(val.toString());
-                            }}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        >
-                            <option value="" disabled>--</option>
-                            {SIZE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                        </select>
-                        <input 
-                            type="text" 
-                            value={tempFontSize} 
-                            onChange={(e) => setTempFontSize(e.target.value)}
-                            onBlur={commitFontSize}
-                            onKeyDown={(e) => e.key === 'Enter' && commitFontSize()}
-                            className="w-full text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none focus:bg-blue-50"
-                        />
-                    </div>
-
-                    <button onClick={() => adjustSize(2)} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
+                    <button onClick={() => { const n = fontSizeMod - 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Minus size={12}/></button>
+                    <select value={SIZE_OPTIONS.find(o => o.value === fontSizeMod) ? fontSizeMod : ''} onChange={(e) => { const val = Number(e.target.value); setFontSizeMod(val); setTempFontSize(val.toString()); }} className="w-16 text-center text-[10px] font-bold border-l border-r border-stone-100 h-full outline-none bg-transparent cursor-pointer">
+                        <option value="" disabled>--</option>
+                        {SIZE_OPTIONS.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                    </select>
+                    <button onClick={() => { const n = fontSizeMod + 2; setFontSizeMod(n); setTempFontSize(n.toString()); }} className="px-2 h-full hover:bg-stone-100 text-stone-600"><Plus size={12}/></button>
                 </div>
                 <label className="flex items-center justify-center bg-white w-7 h-7 rounded border border-stone-200 cursor-pointer hover:bg-stone-50" title="Scegli Colore"><div className="w-4 h-4 rounded-full border border-stone-300" style={{backgroundColor: textColor || '#000000'}}></div><input type="color" value={textColor || '#000000'} onChange={(e) => setTextColor(e.target.value)} className="opacity-0 absolute w-0 h-0"/></label>
             </div>
@@ -189,8 +165,21 @@ export const EditableText: React.FC<EditableTextProps> = ({
   return (
     <div ref={containerRef} className={`relative group cursor-pointer hover:bg-blue-50/50 rounded transition-colors p-0.5 ${dynamicClassName} ${multiline ? 'whitespace-pre-wrap break-words' : ''}`} style={dynamicStyle} onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
       {value || <span className="opacity-40 italic">{placeholder}</span>}
-      <div className="absolute -top-3 right-0 hidden group-hover:flex gap-1 z-10">
-         {value && (<button onClick={handleSpeak} className="bg-white shadow text-blue-600 p-1 rounded-full hover:scale-110 transition-transform border border-blue-100" title="Leggi Testo"><Volume2 size={12}/></button>)}
+      
+      {/* MENU FLUTTUANTE (Audio + AI) */}
+      <div className="absolute -top-4 right-0 hidden group-hover:flex gap-1 z-10 bg-white/90 backdrop-blur p-1 rounded-full shadow border border-stone-200">
+         {value && (
+             <>
+                <button onClick={handleSpeak} className="text-blue-600 p-1 hover:scale-110 transition-transform" title="Ascolta">
+                    {isSpeaking ? <StopCircle size={14} className="text-red-500 animate-pulse"/> : <Volume2 size={14}/>}
+                </button>
+                {aiEnabled && (
+                    <button onClick={handleQuickAi} className="text-purple-600 p-1 hover:scale-110 transition-transform" title="Riscrivi con AI">
+                        <Sparkles size={14}/>
+                    </button>
+                )}
+             </>
+         )}
       </div>
     </div>
   );
