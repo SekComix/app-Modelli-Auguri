@@ -74,11 +74,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
       setIsSpeaking(true);
   };
 
-  // FAST AI REWRITE (La Matitina Magica)
   const handleQuickAi = async (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!value) return;
-      const res = await generateArticleContent("Riscrivi questo testo rendendolo più accattivante e professionale.", value);
+      const res = await generateArticleContent("Migliora questo testo rendendolo più professionale e accattivante.", value);
       if (res) onChange(res);
   };
 
@@ -154,9 +153,25 @@ export const EditableText: React.FC<EditableTextProps> = ({
         <div ref={containerRef} className="relative group z-[50]" onClick={e => e.stopPropagation()}>
            <Toolbar />
            {multiline ? (
-               <textarea ref={inputRef as React.RefObject<HTMLTextAreaElement>} className={`w-full bg-yellow-50/20 border-2 border-blue-400 p-1 outline-none resize-y min-h-[100px] ${dynamicClassName}`} style={dynamicStyle} value={value} onChange={(e) => onChange(e.target.value)}/>
+               <textarea 
+                    ref={inputRef as React.RefObject<HTMLTextAreaElement>} 
+                    className={`w-full bg-yellow-50/20 border-2 border-blue-400 p-1 outline-none resize-y min-h-[100px] ${dynamicClassName}`} 
+                    style={sizeStyle} 
+                    value={value} 
+                    onChange={(e) => onChange(e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()} // <--- FIX: BLOCCA IL DRAG MENTRE SELEZIONI
+                    onClick={(e) => e.stopPropagation()}
+               />
            ) : (
-               <input ref={inputRef as React.RefObject<HTMLInputElement>} className={`w-full bg-yellow-50/20 border-2 border-blue-400 p-1 outline-none ${dynamicClassName}`} style={dynamicStyle} value={value} onChange={(e) => onChange(e.target.value)}/>
+               <input 
+                    ref={inputRef as React.RefObject<HTMLInputElement>} 
+                    className={`w-full bg-yellow-50/20 border-2 border-blue-400 p-1 outline-none ${dynamicClassName}`} 
+                    style={sizeStyle} 
+                    value={value} 
+                    onChange={(e) => onChange(e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()} // <--- FIX: BLOCCA IL DRAG
+                    onClick={(e) => e.stopPropagation()}
+               />
            )}
         </div>
       )
@@ -165,8 +180,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
   return (
     <div ref={containerRef} className={`relative group cursor-pointer hover:bg-blue-50/50 rounded transition-colors p-0.5 ${dynamicClassName} ${multiline ? 'whitespace-pre-wrap break-words' : ''}`} style={dynamicStyle} onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
       {value || <span className="opacity-40 italic">{placeholder}</span>}
-      
-      {/* MENU FLUTTUANTE (Audio + AI) */}
       <div className="absolute -top-4 right-0 hidden group-hover:flex gap-1 z-10 bg-white/90 backdrop-blur p-1 rounded-full shadow border border-stone-200">
          {value && (
              <>
