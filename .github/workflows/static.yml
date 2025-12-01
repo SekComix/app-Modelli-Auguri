@@ -34,8 +34,8 @@ jobs:
         run: npm install
 
       - name: Build
-        # QUI È LA MAGIA: Passiamo la chiave segreta al comando di build
         run: npm run build
+        # QUESTA È LA RIGA MAGICA CHE MANCAVA:
         env:
           VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
