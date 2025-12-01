@@ -49,6 +49,8 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
     const [signatureName, setSignatureName] = useState('');
     const [selectedSigFont, setSelectedSigFont] = useState(SIGNATURE_FONTS[0].family);
     
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const [savedQRs, setSavedQRs] = useState<{label: string, link: string}[]>(() => {
         try { const s = localStorage.getItem('saved_qrs'); return s ? JSON.parse(s) : []; } catch(e){return[];}
     });
@@ -77,13 +79,14 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                 const updatedMascots = [...customMascots, newMascot];
                 setCustomMascots(updatedMascots);
                 try { localStorage.setItem('custom_mascots', JSON.stringify(updatedMascots)); } catch (e) { alert("Memoria piena."); }
+                if(fileInputRef.current) fileInputRef.current.value = '';
             } catch (err) { alert("Errore upload."); } finally { setIsLoading(false); }
         }
     };
 
     const removeCustomMascot = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if(!confirm("Eliminare immagine?")) return;
+        if(!confirm("Vuoi eliminare questa immagine?")) return;
         const updated = customMascots.filter(m => m.id !== id);
         setCustomMascots(updated);
         localStorage.setItem('custom_mascots', JSON.stringify(updated));
@@ -140,7 +143,7 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                             <label className={`flex items-center gap-3 p-4 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors mb-6 group ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div className="bg-white p-2 rounded-full shadow-sm group-hover:scale-110 transition-transform"><Upload className="text-blue-500" size={20}/></div>
                                 <div><h4 className="font-bold text-blue-900 text-sm">{isLoading ? 'CARICAMENTO...' : 'CARICA FOTO TUA'}</h4><p className="text-[10px] text-blue-600">Ottimizzata per il sito</p></div>
-                                <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={handleUpload}/>
+                                <input ref={fileInputRef} type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={handleUpload}/>
                             </label>
                             <div className="grid grid-cols-2 gap-4">
                                 {customMascots.map(m => (
@@ -149,7 +152,12 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                                         <button onClick={(e) => removeCustomMascot(m.id, e)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"><X size={12}/></button>
                                     </div>
                                 ))}
-                                {DEFAULT_ASSETS.mascots.map(m => (<button key={m.id} onClick={() => onAddWidget('mascot', m.src)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><img src={m.src} alt={m.label} className="h-24 object-contain"/><span className="text-xs font-bold text-stone-600 uppercase">{m.label}</span></button>))}
+                                {DEFAULT_ASSETS.mascots.map((m: any) => (
+                                    <button key={m.id} onClick={() => onAddWidget('mascot', m.src || m.content)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2">
+                                        {m.src ? <img src={m.src} alt={m.label} className="h-24 object-contain"/> : <span className="text-4xl">{m.content}</span>}
+                                        <span className="text-xs font-bold text-stone-600 uppercase">{m.label}</span>
+                                    </button>
+                                ))}
                             </div>
                         </>
                     )}
@@ -174,20 +182,26 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
 
                     {activeTab === 'emotions' && (
                         <div className="grid grid-cols-4 gap-4">
-                            {DEFAULT_ASSETS.emotions.map(e => (<button key={e.id} onClick={() => onAddWidget('sticker', e.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-pink-500 hover:shadow-md transition-all flex flex-col items-center justify-center aspect-square gap-1"><span className="text-3xl">{e.content}</span><span className="text-[9px] font-bold text-stone-500 uppercase truncate w-full text-center">{e.label}</span></button>))}
+                            {DEFAULT_ASSETS.emotions.map((e: any) => (<button key={e.id} onClick={() => onAddWidget('sticker', e.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-pink-500 hover:shadow-md transition-all flex flex-col items-center justify-center aspect-square gap-1"><span className="text-3xl">{e.content}</span><span className="text-[9px] font-bold text-stone-500 uppercase truncate w-full text-center">{e.label}</span></button>))}
                         </div>
                     )}
 
                     {activeTab === 'bubbles' && (
                         <div className="grid grid-cols-2 gap-4">
-                             {DEFAULT_ASSETS.bubbles.map(b => (<button key={b.id} onClick={() => onAddWidget('bubble', b.svg)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><div className="h-20 w-full" dangerouslySetInnerHTML={{__html: b.svg}} /><span className="text-xs font-bold text-stone-600 uppercase">{b.label}</span></button>))}
+                             {DEFAULT_ASSETS.bubbles.map((b: any) => (<button key={b.id} onClick={() => onAddWidget('bubble', b.svg)} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><div className="h-20 w-full" dangerouslySetInnerHTML={{__html: b.svg}} /><span className="text-xs font-bold text-stone-600 uppercase">{b.label}</span></button>))}
                             <button onClick={() => onAddWidget('text', '')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2"><div className="h-20 flex items-center justify-center"><Type size={32} className="text-stone-400"/></div><span className="text-xs font-bold text-stone-600 uppercase">Solo Testo</span></button>
                         </div>
                     )}
 
+                     {/* FIX QUI: MAPPATURA SICURA STICKERS (ACCETTA SRC O CONTENT) */}
                      {activeTab === 'stickers' && (
                         <div className="grid grid-cols-3 gap-4">
-                            {DEFAULT_ASSETS.stickers.map(s => (<button key={s.id} onClick={() => onAddWidget('sticker', s.src || s.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2 aspect-square justify-center">{s.src ? <img src={s.src} className="h-10 w-10 object-contain"/> : <span className="text-4xl">{s.content}</span>}<span className="text-xs font-bold text-stone-600 uppercase truncate w-full text-center">{s.label}</span></button>))}
+                            {DEFAULT_ASSETS.stickers.map((s: any) => (
+                                <button key={s.id} onClick={() => onAddWidget('sticker', s.src || s.content)} className="bg-white p-2 rounded-xl shadow-sm border border-stone-200 hover:border-blue-500 hover:shadow-md transition-all flex flex-col items-center gap-2 aspect-square justify-center">
+                                    {s.src ? <img src={s.src} className="h-10 w-10 object-contain"/> : <span className="text-4xl">{s.content}</span>}
+                                    <span className="text-xs font-bold text-stone-600 uppercase truncate w-full text-center">{s.label}</span>
+                                </button>
+                            ))}
                         </div>
                     )}
 
@@ -223,7 +237,6 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({ isOpen, onClose, o
                             )}
                         </div>
                     )}
-
                     {activeTab === 'tools' && (
                         <div className="space-y-3">
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3"><h4 className="font-bold text-blue-800 flex items-center gap-2 mb-1 text-sm"><Scissors size={16}/> Rimuovi Sfondo</h4><p className="text-[10px] text-stone-600 mb-2">Ritaglia persone e oggetti per mascotte.</p><a href="https://www.remove.bg/it/upload" target="_blank" rel="noreferrer" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-2">Remove.bg <ExternalLink size={10}/></a></div>
