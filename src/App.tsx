@@ -7,7 +7,7 @@ import { CrosswordGrid, AddBlockControls, RenderBlocks } from './components/Edit
 import { Dashboard } from './components/Dashboard';
 import { VisualEffects } from './components/VisualEffects';
 import { RenderPoster } from './components/RenderPoster';
-import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Home, Download, Layout, Palette, Calendar, UserCog, Upload, Key } from 'lucide-react';
+import { Printer, Type, Image as ImageIcon, AlignLeft, Trash2, PlusCircle, Check, Loader2, Mail, X, HelpCircle, ArrowLeft, Newspaper, Coffee, Settings, Eye, BookOpen, Save, FolderOpen, Megaphone, Home, Download, Layout, Palette, Calendar, UserCog, Upload } from 'lucide-react';
 import { generateHistoricalContext } from './services/gemini';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { THEMES, INITIAL_ARTICLES, INITIAL_DATA } from './data';
@@ -114,6 +114,19 @@ const App: React.FC = () => {
   const handleAddWidget = (type: WidgetType, content: string, subType?: string, fontFamily?: string) => { const newWidget: WidgetData = { id: `widget-${Date.now()}`, type, content, text: type === 'bubble' ? 'Clicca...' : (type === 'text' ? content : undefined), style: { x: window.innerWidth/2-100, y: window.scrollY+300, width: type === 'sticker' ? 100 : 200, height: type === 'sticker' ? 100 : 100, rotation: 0, zIndex: 50, fontSize: 24, color: '#000000', fontFamily: fontFamily || 'Chomsky', flipX: false } }; setData(prev => ({ ...prev, widgets: [...(prev.widgets || []), newWidget] })); setSelectedWidgetId(newWidget.id); setShowWidgetLibrary(false); };
   const setWidgets = (action: React.SetStateAction<WidgetData[]>) => { setData(prev => { const newWidgets = typeof action === 'function' ? action(prev.widgets || []) : action; return { ...prev, widgets: newWidgets }; }); };
 
+  // AGGIUNTA BLOCCHI GENERATI DA AI
+  const addGeneratedBlocks = (section: 'front'|'back'|'sidebar', headline: string, body: string) => {
+      const newHeadline: ContentBlock = { id: `gen-h-${Date.now()}`, type: 'headline', content: headline };
+      const newBody: ContentBlock = { id: `gen-b-${Date.now()}`, type: 'paragraph', content: body };
+      const listKey = section === 'front' ? 'frontPageBlocks' : section === 'back' ? 'backPageBlocks' : 'sidebarBlocks';
+      setData(prev => ({ ...prev, [listKey]: [...prev[listKey], newHeadline, newBody] }));
+  };
+  const addGeneratedToSpread = (sid: string, side: 'left'|'right', h: string, b: string) => { 
+      const hBlock: ContentBlock = {id: `gen-h-${Date.now()}`, type: 'headline', content: h};
+      const bBlock: ContentBlock = {id: `gen-b-${Date.now()}`, type: 'paragraph', content: b};
+      setData(prev => ({...prev, extraSpreads: prev.extraSpreads.map(s => s.id===sid ? {...s, [side==='left'?'leftBlocks':'rightBlocks']: [...(side==='left'?s.leftBlocks:s.rightBlocks), hBlock, bBlock]} : s)})); 
+  };
+
   const pageHeightClass = "h-[1350px] overflow-hidden";
   const customPageStyle = isDigital && data.customBgColor ? { backgroundColor: data.customBgColor } : {};
   
@@ -140,12 +153,23 @@ const App: React.FC = () => {
           <article className="mb-6 flex-1 flex flex-col">
              <EditableText value={data.articles['lead'].headline} onChange={(v) => updateArticle('lead', 'headline', v)} className={`${currentTheme.headlineFont} ${isPoster ? 'text-6xl lg:text-7xl text-center my-8' : 'text-4xl lg:text-5xl'} leading-tight mb-2 font-bold`} aiEnabled={!isPreviewMode} aiContext="Titolo principale" mode="headline"/>
              {!isPoster && (<EditableText value={data.articles['lead'].subheadline || ''} onChange={(v) => updateArticle('lead', 'subheadline', v)} className={`${currentTheme.bodyFont} text-xl italic opacity-80 mb-4`} aiEnabled={!isPreviewMode} aiContext="Sottotitolo" mode="headline"/>)}
-             <ImageSpot src={data.articles['lead'].imageUrl} onChange={(v) => updateArticle('lead', 'imageUrl', v)} className={`w-full mb-4 ${currentTheme.borderClass} border shadow-sm ${isPoster ? 'flex-1 object-cover min-h-[500px]' : ''}`} context={data.articles['lead'].headline} autoHeight={!isPoster} filters={currentTheme.imageFilter} enableResizing={!isPreviewMode} customHeight={data.articles['lead'].customHeight} onHeightChange={(h) => updateArticle('lead', 'customHeight', h)}/>
+             <ImageSpot 
+                src={data.articles['lead'].imageUrl} 
+                onChange={(v) => updateArticle('lead', 'imageUrl', v)} 
+                className={`w-full mb-4 ${currentTheme.borderClass} border shadow-sm ${isPoster ? 'flex-1 object-cover min-h-[500px]' : ''}`} 
+                context={data.articles['lead'].headline} 
+                autoHeight={!isPoster} 
+                filters={currentTheme.imageFilter} 
+                enableResizing={!isPreviewMode} 
+                customHeight={data.articles['lead'].customHeight} 
+                onHeightChange={(h) => updateArticle('lead', 'customHeight', h)}
+                onAnalyze={(h, b) => { updateArticle('lead', 'headline', h); updateArticle('lead', 'content', b); }}
+            />
              {!isPoster && (<div className={`columns-2 gap-6 [column-rule:1px_solid_${isDigital?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.1)'}] ${currentTheme.bodyFont} text-sm text-justify leading-relaxed`}><EditableText value={data.articles['lead'].content} onChange={(v) => updateArticle('lead', 'content', v)} multiline={true} aiEnabled={!isPreviewMode} aiContext="Articolo principale" mode="body"/></div>)}
           </article>
-          {!isPoster && (<div className={`${currentTheme.borderClass} border-t-2 pt-4 mt-2`}><RenderBlocks blocks={data.frontPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('front',id,v,h)} onRemove={(id:string)=>removeBlock('front',id)} theme={currentTheme} isPreview={isPreviewMode}/><AddBlockControls onAdd={(t:BlockType)=>addBlock('front',t)} themeId={data.themeId} isPreview={isPreviewMode}/></div>)}
+          {!isPoster && (<div className={`${currentTheme.borderClass} border-t-2 pt-4 mt-2`}><RenderBlocks blocks={data.frontPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('front',id,v,h)} onRemove={(id:string)=>removeBlock('front',id)} onAddGenerated={(h,b)=>addGeneratedBlocks('front',h,b)} theme={currentTheme} isPreview={isPreviewMode}/><AddBlockControls onAdd={(t:BlockType)=>addBlock('front',t)} themeId={data.themeId} isPreview={isPreviewMode}/></div>)}
         </div>
-        {!isPoster && (<div className={`col-span-4 ${currentTheme.borderClass} border-l pl-4 flex flex-col gap-6`}><div className={`${currentTheme.borderClass} border-2 p-3 bg-stone-200/50 text-stone-800`}><h3 className="font-sans font-bold uppercase text-sm border-b mb-2">In Questo Numero</h3><EditableText value={data.indexContent} onChange={(v)=>updateMeta('indexContent',v)} multiline={true} className="text-sm font-serif" aiEnabled={!isPreviewMode} aiContext="Indice" mode="summary"/></div><article><EditableText value={data.articles['sidebar'].headline} onChange={(v)=>updateArticle('sidebar','headline',v)} className={`${currentTheme.headlineFont} text-2xl font-bold mb-2`} aiEnabled={!isPreviewMode} aiContext="Titolo spalla" mode="headline"/><EditableText value={data.articles['sidebar'].content} onChange={(v)=>updateArticle('sidebar','content',v)} multiline={true} className="text-xs text-justify" aiEnabled={!isPreviewMode} aiContext="Articolo spalla" mode="body"/></article><div className="mt-4 border-t pt-4"><RenderBlocks blocks={data.sidebarBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('sidebar',id,v,h)} onRemove={(id:string)=>removeBlock('sidebar',id)} theme={currentTheme} isSidebar={true} isPreview={isPreviewMode}/><AddBlockControls onAdd={(t:BlockType)=>addBlock('sidebar',t)} isSidebar={true} themeId={data.themeId} isPreview={isPreviewMode}/></div></div>)}
+        {!isPoster && (<div className={`col-span-4 ${currentTheme.borderClass} border-l pl-4 flex flex-col gap-6`}><div className={`${currentTheme.borderClass} border-2 p-3 bg-stone-200/50 text-stone-800`}><h3 className="font-sans font-bold uppercase text-sm border-b mb-2">In Questo Numero</h3><EditableText value={data.indexContent} onChange={(v)=>updateMeta('indexContent',v)} multiline={true} className="text-sm font-serif" aiEnabled={!isPreviewMode} aiContext="Indice" mode="summary"/></div><article><EditableText value={data.articles['sidebar'].headline} onChange={(v)=>updateArticle('sidebar','headline',v)} className={`${currentTheme.headlineFont} text-2xl font-bold mb-2`} aiEnabled={!isPreviewMode} aiContext="Titolo spalla" mode="headline"/><EditableText value={data.articles['sidebar'].content} onChange={(v)=>updateArticle('sidebar','content',v)} multiline={true} className="text-xs text-justify" aiEnabled={!isPreviewMode} aiContext="Articolo spalla" mode="body"/></article><div className="mt-4 border-t pt-4"><RenderBlocks blocks={data.sidebarBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('sidebar',id,v,h)} onRemove={(id:string)=>removeBlock('sidebar',id)} onAddGenerated={(h,b)=>addGeneratedBlocks('sidebar',h,b)} theme={currentTheme} isSidebar={true} isPreview={isPreviewMode}/><AddBlockControls onAdd={(t:BlockType)=>addBlock('sidebar',t)} isSidebar={true} themeId={data.themeId} isPreview={isPreviewMode}/></div></div>)}
       </div>
     </div>
   );
@@ -154,7 +178,7 @@ const App: React.FC = () => {
     <div className={`w-full ${pageHeightClass} ${!isDigital ? currentTheme.bgClass : ''} p-8 lg:p-12 relative print:w-full shadow-xl print:shadow-none print:break-after-page group/page ${currentTheme.textClass} flex flex-col`} style={customPageStyle}>
        <div className="absolute bottom-0 left-0 w-full h-1 bg-transparent border-b-2 border-dashed border-red-500 opacity-50 print:hidden pointer-events-none z-50"></div>
        {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilterInternal"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilterInternal)" /></svg></div>)}
-       <div className="flex-1 overflow-hidden flex flex-col relative z-30"><RenderBlocks blocks={blocks} onUpdate={(id:string,v:string,h?:number)=>updateBlockInSpread(sid,side,id,v,h)} onRemove={(id:string)=>removeBlockInSpread(sid,side,id)} theme={currentTheme} isPreview={isPreviewMode}/><div className="mt-auto"><AddBlockControls onAdd={(t:BlockType)=>addBlockToSpread(sid,side,t)} themeId={data.themeId} isPreview={isPreviewMode}/></div></div>
+       <div className="flex-1 overflow-hidden flex flex-col relative z-30"><RenderBlocks blocks={blocks} onUpdate={(id:string,v:string,h?:number)=>updateBlockInSpread(sid,side,id,v,h)} onRemove={(id:string)=>removeBlockInSpread(sid,side,id)} onAddGenerated={(h,b)=>addGeneratedToSpread(sid,side,h,b)} theme={currentTheme} isPreview={isPreviewMode}/><div className="mt-auto"><AddBlockControls onAdd={(t:BlockType)=>addBlockToSpread(sid,side,t)} themeId={data.themeId} isPreview={isPreviewMode}/></div></div>
        <div className="mt-4 text-center text-xs font-bold flex-shrink-0 relative z-30">Pagina {pn}</div>
     </div>
   );
@@ -165,7 +189,18 @@ const App: React.FC = () => {
         {isVintageMode && (<div className="absolute inset-0 pointer-events-none z-40 mix-blend-multiply opacity-40 bg-[#d4c5a6]" style={{ filter: 'sepia(0.6) contrast(1.1)' }}><svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilterBack"><feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noiseFilterBack)" /></svg></div>)}
         <header className={`${currentTheme.borderClass} border-b-2 pb-2 mb-6 flex justify-between items-end relative z-30`}><h2 className={`${currentTheme.headlineFont} text-4xl font-bold uppercase`}>Ultima Pagina</h2></header>
         <article className="border-b pb-6 mb-6 relative z-30">
-            <ImageSpot src={data.articles['backMain'].imageUrl} onChange={(v)=>updateArticle('backMain','imageUrl',v)} className={`w-full mb-4`} autoHeight={true} filters={currentTheme.imageFilter} context={data.articles['backMain'].headline} enableResizing={!isPreviewMode} customHeight={data.articles['backMain'].customHeight} onHeightChange={(h) => updateArticle('backMain', 'customHeight', h)}/>
+            <ImageSpot 
+                src={data.articles['backMain'].imageUrl} 
+                onChange={(v)=>updateArticle('backMain','imageUrl',v)} 
+                className={`w-full mb-4`} 
+                autoHeight={true} 
+                filters={currentTheme.imageFilter} 
+                context={data.articles['backMain'].headline} 
+                enableResizing={!isPreviewMode} 
+                customHeight={data.articles['backMain'].customHeight} 
+                onHeightChange={(h) => updateArticle('backMain', 'customHeight', h)}
+                onAnalyze={(h, b) => { updateArticle('backMain', 'headline', h); updateArticle('backMain', 'content', b); }}
+            />
             <EditableText value={data.articles['backMain'].headline} onChange={(v)=>updateArticle('backMain','headline',v)} className={`${currentTheme.headlineFont} text-5xl font-black italic uppercase leading-none mb-3`} aiEnabled={!isPreviewMode} mode="headline"/>
             <EditableText value={data.articles['backMain'].content} onChange={(v)=>updateArticle('backMain','content',v)} multiline={true} className={`columns-2 gap-6 [column-rule:1px_solid_${isDigital?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.1)'}] text-sm text-justify`} aiEnabled={!isPreviewMode} mode="body"/>
         </article>
@@ -174,7 +209,7 @@ const App: React.FC = () => {
             <div className={`border ${currentTheme.borderClass} p-4 text-center`}><h3 className="uppercase font-bold text-sm mb-2">Vignetta / Dedica</h3><ImageSpot src={data.articles['comic'].imageUrl} onChange={(v)=>updateArticle('comic','imageUrl',v)} className="w-full" autoHeight={true} filters={currentTheme.imageFilter} context={data.articles['comic'].content}/><EditableText value={data.articles['comic'].content} onChange={(v)=>updateArticle('comic','content',v)} className="text-xs italic mt-2" aiEnabled={!isPreviewMode} mode="headline" multiline={true}/></div>
         </div>
         <div className="mt-4">
-             <RenderBlocks blocks={data.backPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('back',id,v,h)} onRemove={(id:string)=>removeBlock('back',id)} theme={currentTheme} isPreview={isPreviewMode}/>
+             <RenderBlocks blocks={data.backPageBlocks} onUpdate={(id:string,v:string,h?:number)=>updateBlock('back',id,v,h)} onRemove={(id:string)=>removeBlock('back',id)} onAddGenerated={(h,b)=>addGeneratedBlocks('back',h,b)} theme={currentTheme} isPreview={isPreviewMode}/>
              <AddBlockControls onAdd={(t:BlockType)=>addBlock('back',t)} themeId={data.themeId} isPreview={isPreviewMode}/>
         </div>
      </div>
@@ -187,7 +222,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-stone-800 p-4 lg:p-8 font-sans text-stone-900">
       <nav className="sticky top-0 z-[100] bg-white shadow-lg mb-8 print:hidden flex flex-col">
         <div className="max-w-[1600px] mx-auto w-full p-3 flex flex-wrap items-center justify-between gap-4">
-            {/* SINISTRA: LOGO UPLOADABILE */}
+            {/* SINISTRA */}
             <div className="flex items-center gap-3 mr-4">
                 <button onClick={() => setShowDashboard(true)} className="bg-stone-100 hover:bg-stone-200 p-2 rounded-lg text-stone-700 flex items-center gap-2 font-bold text-xs uppercase" title="Torna alla Home"><Home size={18}/> Home</button>
                 <label className="cursor-pointer group relative" title="Carica Logo">
@@ -256,10 +291,8 @@ const App: React.FC = () => {
                     
                     {/* BOTTONE TEST KEY */}
                     <button onClick={() => {
-                        // Test rapido della chiave caricata da Vite
-                        const key = import.meta.env.VITE_GEMINI_API_KEY;
-                        if (key) alert("✅ Chiave Trovata! (Inizia con " + key.substring(0,5) + "...)");
-                        else alert("❌ Chiave NON trovata. Verifica che sia nei Secrets di GitHub col nome 'GEMINI_API_KEY'.");
+                        const key = (import.meta as any).env?.VITE_GEMINI_API_KEY;
+                        alert(key ? "✅ Chiave Trovata! AI Attiva." : "❌ Chiave assente. Controlla GitHub Secrets.");
                     }} className="ml-2 text-xs bg-gray-200 p-1 rounded text-gray-500 hover:text-black" title="Test API Key">🔑</button>
                 </div>
 
@@ -308,7 +341,6 @@ const App: React.FC = () => {
       {showResetDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowResetDialog(false)}><div className="bg-white text-stone-900 p-6 rounded-xl shadow-2xl max-w-md w-full border-2 border-red-500" onClick={e=>e.stopPropagation()}><h3 className="text-lg font-bold uppercase mb-4 flex items-center gap-2 text-red-600"><PlusCircle size={24}/> Nuovo Progetto?</h3><div className="flex justify-end gap-3"><button onClick={()=>setShowResetDialog(false)} className="px-4 py-2 text-stone-500 font-bold text-xs uppercase hover:bg-stone-100 rounded">Annulla</button><button onClick={handleConfirmReset} className="px-6 py-2 bg-red-600 text-white font-bold text-xs uppercase rounded hover:bg-red-700 shadow-lg">Conferma</button></div></div></div>}
       {showEmailDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowEmailDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-md w-full border-2 border-stone-800" onClick={e=>e.stopPropagation()}><div className="flex items-center justify-between mb-6 border-b pb-4"><h3 className="text-xl font-bold uppercase flex items-center gap-2"><Mail size={24}/> Email</h3><button onClick={()=>setShowEmailDialog(false)}><X size={24}/></button></div><div className="space-y-2"><button onClick={()=>{const s=encodeURIComponent(`Giornale: ${data.publicationName}`);const b=encodeURIComponent("Allega PDF");window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`,'_blank');setShowEmailDialog(false)}} className="w-full bg-red-600 hover:bg-red-700 text-white p-3 font-bold uppercase rounded mb-2 flex items-center justify-center gap-2 shadow-md">GMAIL</button><button onClick={()=>{window.location.href=`mailto:?subject=${encodeURIComponent(data.publicationName)}&body=${encodeURIComponent("Allega PDF")}`;setShowEmailDialog(false)}} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 font-bold uppercase rounded flex items-center justify-center gap-2 shadow-md">OUTLOOK</button></div></div></div>}
       {showHelpDialog && <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 animate-fade-in-up" onClick={()=>setShowHelpDialog(false)}><div className="bg-white text-stone-900 p-8 rounded-xl shadow-2xl max-w-lg w-full border-4 border-stone-800 relative" onClick={e=>e.stopPropagation()}><button onClick={()=>setShowHelpDialog(false)} className="absolute top-4 right-4 hover:bg-red-100 rounded-full p-1 text-red-500"><X size={24}/></button><h3 className="text-2xl font-black uppercase mb-6 flex items-center gap-2 border-b pb-4"><HelpCircle size={32}/> Guida</h3><div className="mt-8 text-center"><button onClick={()=>setShowHelpDialog(false)} className="bg-stone-900 text-white px-8 py-3 rounded-lg font-bold uppercase hover:scale-105 transition-transform">Ho Capito!</button></div></div></div>}
-      
       {showPrintDialog && <PrintDialog onClose={() => setShowPrintDialog(false)} />}
     </div>
   );
