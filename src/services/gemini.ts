@@ -1,15 +1,15 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// LETTURA DIRETTA (Standard Vite)
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
+// FIX: Uso 'as any' per evitare che TypeScript blocchi la compilazione
+const API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
 
-// Inizializza solo se c'è la chiave, altrimenti l'AI sarà disabilitata
+// Inizializza solo se c'è la chiave
 const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 const model = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) : null;
 
 // --- 1. GENERAZIONE TESTO ---
 export const generateArticleContent = async (prompt: string, context: string): Promise<string> => {
-  if (!model) return "⚠️ Errore: Chiave API non trovata. Verifica i Secrets di GitHub.";
+  if (!model) return "⚠️ Errore: Chiave API non trovata o non valida.";
   
   try {
     const fullPrompt = `Sei un giornalista. Contesto: ${context}. Richiesta: ${prompt}. Scrivi un testo breve in italiano.`;
@@ -17,7 +17,7 @@ export const generateArticleContent = async (prompt: string, context: string): P
     return result.response.text();
   } catch (error) {
     console.error(error);
-    return "Impossibile generare il testo (Errore Connessione/Quota).";
+    return "Impossibile generare il testo.";
   }
 };
 
@@ -37,16 +37,16 @@ export const generateTextFromMedia = async (base64Image: string): Promise<{ head
   }
 };
 
-// --- 3. GENERAZIONE IMMAGINE (Pollinations - Gratis, No Key) ---
+// --- 3. GENERAZIONE IMMAGINE (Pollinations - Gratis) ---
 export const generateNewspaperImage = async (prompt: string, refImage?: string): Promise<string> => {
   let enhancedPrompt = prompt;
 
-  // Se c'è la chiave, miglioriamo il prompt, altrimenti usiamo quello base
+  // Se c'è la chiave, miglioriamo il prompt
   if (model) {
       try {
         const result = await model.generateContent(`Translate to English and describe for an image generator: "${prompt}"`);
         enhancedPrompt = result.response.text();
-      } catch (e) { console.log("Gemini offline, uso prompt originale"); }
+      } catch (e) { console.log("Uso prompt originale"); }
   }
 
   const seed = Math.floor(Math.random() * 1000);
